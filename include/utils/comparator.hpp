@@ -21,7 +21,6 @@ private:
     hash_t hash1_;
     hash_t hash2_;
     constexpr static size_t sizeofT = sizeof(FixedType);
-    static_assert(is_pod_v<FixedType>, "MemoryHash requires POD FixedType");
 public:
     MemoryHash(const FixedType& data);
 

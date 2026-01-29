@@ -25,20 +25,6 @@ GENERATE_OPERATOR_CHECKS
 
 #undef GENERATE_OPERATOR_CHECKS
 
-template<typename Type>
-struct is_pod : std::bool_constant<
-    std::is_standard_layout_v<Type> &&
-    std::is_trivially_copyable_v<Type> &&
-    std::is_trivially_destructible_v<Type> &&
-    std::is_trivially_copy_constructible_v<Type> &&
-    std::is_trivially_move_constructible_v<Type> &&
-    std::is_trivially_copy_assignable_v<Type> &&
-    std::is_trivially_move_assignable_v<Type>
-> {};
-
-template<typename T>
-inline constexpr bool is_pod_v = is_pod<T>::value;
-
 } // namespace sjtu
 
 #endif // TYPE_HELPER_HPP

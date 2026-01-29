@@ -10,6 +10,6 @@ include_directories(include)
 
 # add_executable(code src/main.cpp)
 
-add_executable(bpt src/bpt.cpp)
+add_executable(code src/bpt.cpp)
 
 add_executable(cleanup src/cleanup.cpp)
