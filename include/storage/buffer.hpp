@@ -9,6 +9,7 @@
 #include "../config.hpp"
 #include "page.hpp"
 #include "disk.hpp"
+#include "../stl/list.hpp"
 
 namespace sjtu {
 #define BUFFER_MANAGER_TYPE BufferManager<KeyType, ValueType>
@@ -21,12 +22,12 @@ private:
         diskpos_t pos_;
         std::shared_ptr<PAGE_TYPE> page_;
         bool dirty_;
-        typename std::list<diskpos_t>::iterator lru_it_;
+        typename sjtu::list<diskpos_t>::iterator lru_it_;
     };
     DiskManager<PAGE_TYPE> disk_;
     std::unordered_map<diskpos_t, CacheEntry> cache_;
     std::unordered_set<diskpos_t> cache_in_use_;
-    std::list<diskpos_t> lru_list_;
+    sjtu::list<diskpos_t> lru_list_;
     size_t cache_capacity_;
 
     void evict();
@@ -85,7 +86,9 @@ void BUFFER_MANAGER_TYPE::evict() {
                 if (it->second.dirty_) {
                     disk_.update(*(it->second.page_), cand);
                 }
-                lru_list_.erase(std::next(rit).base());
+                auto forward_it = rit.base();
+                --forward_it;
+                lru_list_.erase(forward_it);
                 cache_.erase(it);
                 return;
             }
