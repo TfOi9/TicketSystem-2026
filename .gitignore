@@ -1,0 +1,17 @@
+.clangd
+.in
+.out
+.ans
+.err
+.log
+.bin
+.dat
+.txt
+build/*
+test/*
+tools/*
+temp/*
+.DS_Store
+.cache/*
+.vscode/*
+.idea/*
