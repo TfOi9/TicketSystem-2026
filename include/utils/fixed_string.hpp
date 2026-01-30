@@ -36,6 +36,8 @@ public:
 
     inline static size_t size() { return size_; }
 
+    std::string str() const;
+
     template<size_t len>
     friend bool operator==(const FixedString<len>& a, const FixedString<len>& b);
 
@@ -78,7 +80,7 @@ FIXEDSTRING_TYPE::FixedString(const char *str) {
         throw std::invalid_argument("null pointer passed to FixedString");
     }
     std::memset(data_, 0, sizeof(data_));
-	std::strncpy(data_, str, sizeof(data_) - sizeof(char));
+	std::strncpy(data_, str, sizeof(data_));
 }
 
 FIXEDSTRING_TEMPLATE_ARGS
@@ -114,8 +116,21 @@ char FIXEDSTRING_TYPE::operator[](size_t index) const {
 }
 
 FIXEDSTRING_TEMPLATE_ARGS
+std::string FIXEDSTRING_TYPE::str() const {
+    std::string ret;
+    ret.reserve(length);
+    for (size_t i = 0; i < length; i++) {
+        ret.push_back(data_[i]);
+        if (data_[i] == '\0') {
+            break;
+        }
+    }
+    return ret;
+}
+
+FIXEDSTRING_TEMPLATE_ARGS
 bool operator==(const FIXEDSTRING_TYPE& a, const FIXEDSTRING_TYPE& b) {
-	return std::strcmp(a.data_, b.data_) == 0;
+	return std::strncmp(a.data_, b.data_, length) == 0;
 }
 
 FIXEDSTRING_TEMPLATE_ARGS
@@ -125,22 +140,22 @@ bool operator!=(const FIXEDSTRING_TYPE& a, const FIXEDSTRING_TYPE& b) {
 
 FIXEDSTRING_TEMPLATE_ARGS
 bool operator<(const FIXEDSTRING_TYPE& a, const FIXEDSTRING_TYPE& b) {
-	return std::strcmp(a.data_, b.data_) < 0;
+	return std::strncmp(a.data_, b.data_, length) < 0;
 }
 
 FIXEDSTRING_TEMPLATE_ARGS
 bool operator>(const FIXEDSTRING_TYPE& a, const FIXEDSTRING_TYPE& b) {
-	return std::strcmp(a.data_, b.data_) > 0;
+	return std::strncmp(a.data_, b.data_, length) > 0;
 }
 
 FIXEDSTRING_TEMPLATE_ARGS
 bool operator<=(const FIXEDSTRING_TYPE& a, const FIXEDSTRING_TYPE& b) {
-	return std::strcmp(a.data_, b.data_) <= 0;
+	return std::strncmp(a.data_, b.data_, length) <= 0;
 }
 
 FIXEDSTRING_TEMPLATE_ARGS
 bool operator>=(const FIXEDSTRING_TYPE& a, const FIXEDSTRING_TYPE& b) {
-	return std::strcmp(a.data_, b.data_) >= 0;
+	return std::strncmp(a.data_, b.data_, length) >= 0;
 }
 
 FIXEDSTRING_TEMPLATE_ARGS
