@@ -5,7 +5,6 @@
 #include <fstream>
 
 #include "../config.hpp"
-#include "../utils/type_helper.hpp"
 
 namespace sjtu {
 #define DISKMANAGER_TYPE DiskManager<FixedType, FixedInfoType, info_len>

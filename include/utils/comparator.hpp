@@ -5,7 +5,6 @@
 #include <cstddef>
     
 #include "../config.hpp"
-#include "type_helper.hpp"
 
 namespace sjtu {
 #define MEMORYHASH_TYPE MemoryHash<FixedType>

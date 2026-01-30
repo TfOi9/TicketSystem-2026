@@ -1,15 +1,14 @@
 #ifndef BUFFER_HPP
 #define BUFFER_HPP
 
-#include <list>
 #include <memory>
-#include <unordered_map>
-#include <unordered_set>
 
 #include "../config.hpp"
 #include "page.hpp"
 #include "disk.hpp"
 #include "../stl/list.hpp"
+#include "../stl/unordered_map.hpp"
+#include "../stl/unordered_set.hpp"
 
 namespace sjtu {
 #define BUFFER_MANAGER_TYPE BufferManager<KeyType, ValueType>
@@ -25,8 +24,8 @@ private:
         typename sjtu::list<diskpos_t>::iterator lru_it_;
     };
     DiskManager<PAGE_TYPE> disk_;
-    std::unordered_map<diskpos_t, CacheEntry> cache_;
-    std::unordered_set<diskpos_t> cache_in_use_;
+    sjtu::unordered_map<diskpos_t, CacheEntry> cache_;
+    sjtu::unordered_set<diskpos_t> cache_in_use_;
     sjtu::list<diskpos_t> lru_list_;
     size_t cache_capacity_;
 
@@ -83,13 +82,13 @@ void BUFFER_MANAGER_TYPE::evict() {
         if (cache_in_use_.find(cand) == cache_in_use_.end()) {
             auto it = cache_.find(cand);
             if (it != cache_.end()) {
-                if (it->second.dirty_) {
-                    disk_.update(*(it->second.page_), cand);
+                if (it->second->dirty_) {
+                    disk_.update(*(it->second->page_), cand);
                 }
                 auto forward_it = rit.base();
                 --forward_it;
                 lru_list_.erase(forward_it);
-                cache_.erase(it);
+                cache_.erase(cand);
                 return;
             }
         }
@@ -100,9 +99,9 @@ BUFFER_MANAGER_TEMPLATE_ARGS
 void BUFFER_MANAGER_TYPE::promote(diskpos_t pos) {
     auto it = cache_.find(pos);
     if (it != cache_.end()) {
-        lru_list_.erase(it->second.lru_it_);
+        lru_list_.erase(it->second->lru_it_);
         lru_list_.push_front(pos);
-        it->second.lru_it_ = lru_list_.begin();
+        it->second->lru_it_ = lru_list_.begin();
     }
 }
 
@@ -124,7 +123,7 @@ std::shared_ptr<const PAGE_TYPE> BUFFER_MANAGER_TYPE::get_page(diskpos_t pos) {
     auto it = cache_.find(pos);
     if (it != cache_.end()) {
         promote(pos);
-        return std::const_pointer_cast<const PAGE_TYPE>(it->second.page_);
+        return std::const_pointer_cast<const PAGE_TYPE>(it->second->page_);
     }
     if (cache_.size() >= cache_capacity_) {
         evict();
@@ -140,7 +139,7 @@ std::shared_ptr<PAGE_TYPE> BUFFER_MANAGER_TYPE::get_page_mutable(diskpos_t pos) 
         promote(pos);
         mark_dirty(pos);
         cache_in_use_.insert(pos);
-        return it->second.page_;
+        return it->second->page_;
     }
     if (cache_.size() >= cache_capacity_) {
         evict();
@@ -155,7 +154,7 @@ BUFFER_MANAGER_TEMPLATE_ARGS
 void BUFFER_MANAGER_TYPE::mark_dirty(diskpos_t pos) {
     auto it = cache_.find(pos);
     if (it != cache_.end()) {
-        it->second.dirty_ = true;
+        it->second->dirty_ = true;
     }
 }
 
@@ -179,9 +178,9 @@ diskpos_t BUFFER_MANAGER_TYPE::insert_page(Page<KeyType, ValueType> &page) {
 BUFFER_MANAGER_TEMPLATE_ARGS
 void BUFFER_MANAGER_TYPE::flush() {
     for (auto& pair : cache_) {
-        if (pair.second.dirty_) {
-            disk_.update(*(pair.second.page_), pair.first);
-            pair.second.dirty_ = false;
+        if (pair.second->dirty_) {
+            disk_.update(*(pair.second->page_), *pair.first);
+            pair.second->dirty_ = false;
         }
     }
     cache_.clear();
