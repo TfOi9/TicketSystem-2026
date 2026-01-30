@@ -60,6 +60,8 @@ public:
 
     void finish_use(diskpos_t pos);
 
+    void clear();
+
 };
 
 BUFFER_MANAGER_TEMPLATE_ARGS
@@ -203,6 +205,14 @@ void BUFFER_MANAGER_TYPE::set_root_pos(diskpos_t pos) {
 BUFFER_MANAGER_TEMPLATE_ARGS
 void BUFFER_MANAGER_TYPE::finish_use(diskpos_t pos) {
     cache_in_use_.erase(pos);
+}
+
+BUFFER_MANAGER_TEMPLATE_ARGS
+void BUFFER_MANAGER_TYPE::clear() {
+    disk_.clear();
+    cache_.clear();
+    lru_list_.clear();
+    cache_in_use_.clear();
 }
 
 } // namespace sjtu

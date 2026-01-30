@@ -28,6 +28,8 @@ public:
 
     std::string arg(char key) const;
 
+    bool check(const std::string& must, const std::string& optional);
+
 };
 
 } // namespace sjtu

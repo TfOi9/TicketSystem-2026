@@ -43,6 +43,8 @@ public:
 
     void erase(const KeyType& key, const ValueType& val);
 
+    void clear();
+
 };
 
 BPT_TEMPLATE_ARGS
@@ -540,6 +542,14 @@ void BPT_TYPE::balance() {
         return;
     }
     merge();
+}
+
+BPT_TEMPLATE_ARGS
+void BPT_TYPE::clear() {
+    buffer_.clear();
+    cur_.reset();
+    pos_ = 0;
+    root_ = 0;
 }
 
 } // namespace sjtu

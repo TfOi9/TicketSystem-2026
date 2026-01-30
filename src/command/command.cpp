@@ -61,4 +61,21 @@ std::string Command::arg(char key) const {
     return (key >= 'a' && key <= 'z') ? args_[key - 'a'] : "";
 }
 
+bool Command::check(const std::string& must, const std::string& optional) {
+    for (const char ch : must) {
+        if (args_[ch].empty()) {
+            return false;
+        }
+    }
+    for (char ch = 'a'; ch <= 'z'; ch++) {
+        if (args_[ch].empty()) {
+            continue;
+        }
+        if (must.find(ch) == std::string::npos && optional.find(ch) == std::string::npos) {
+            return false;
+        }
+    }
+    return true;
+}
+
 } // namespace sjtu

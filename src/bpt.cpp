@@ -42,6 +42,12 @@ int main() {
 			std::cin >> key >> val;
 			bpt.erase(sjtu::FixedString<64>(key), val);
 		}
+		else if (op == "clear") {
+			bpt.clear();
+		}
+		else {
+			std::cout << "unknown operation" << std::endl;
+		}
 	}
 	return 0;
 }

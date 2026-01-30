@@ -37,6 +37,9 @@ public:
     void update(FixedType& t, const diskpos_t pos);
 
     diskpos_t write(FixedType& t);
+
+    void clear();
+
 };
 
 DISKMANAGER_TEMPLATE_ARGS
@@ -117,6 +120,14 @@ diskpos_t DISKMANAGER_TYPE::write(FixedType& t) {
     diskpos_t pos = file_.tellp();
     file_.write(reinterpret_cast<char *>(&t), sizeofT);
     return pos;
+}
+
+DISKMANAGER_TEMPLATE_ARGS
+void DISKMANAGER_TYPE::clear() {
+    if (file_.is_open()) {
+        file_.close();
+    }
+    file_.open(file_name_, std::ios::binary | std::ios::trunc);
 }
 
 } // namespace sjtu
