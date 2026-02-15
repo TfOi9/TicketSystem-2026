@@ -198,8 +198,8 @@ bool is_cspecial(char32_t cp) {
         (cp == 0xFF1A);         // 「：」
 }
 
-std::vector<char32_t> utf8_to_utf32(const std::string& str) {
-    std::vector<char32_t> result;
+sjtu::vector<char32_t> utf8_to_utf32(const std::string& str) {
+    sjtu::vector<char32_t> result;
     int i = 0;
     while (i < str.size()) {
         unsigned char ch = str[i];

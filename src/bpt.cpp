@@ -1,7 +1,6 @@
 #include <cstring>
 #include <iostream>
 #include <string>
-#include <vector>
 
 #include "../include/storage/bpt.hpp"
 #include "../include/utils/fixed_string.hpp"
@@ -26,7 +25,7 @@ int main() {
 		}
 		else if (op == "find") {
 			std::cin >> key;
-			std::vector<int> vec;
+			sjtu::vector<int> vec;
 			bpt.find_all(sjtu::FixedString<64>(key), vec);
 			if (vec.empty()) {
 				std::cout << "null\n";

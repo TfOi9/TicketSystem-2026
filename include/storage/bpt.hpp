@@ -7,6 +7,7 @@
 #include "../config.hpp"
 #include "page.hpp"
 #include "buffer.hpp"
+#include "../stl/vector.hpp"
 
 namespace sjtu {
 #define BPT_TYPE BPlusTree<KeyType, ValueType>
@@ -37,7 +38,7 @@ public:
 
     std::optional<ValueType> find(const KeyType& key);
 
-    void find_all(const KeyType& key, std::vector<ValueType>& vec);
+    void find_all(const KeyType& key, sjtu::vector<ValueType>& vec);
 
     void insert(const KeyType& key, const ValueType& val);
 
@@ -77,7 +78,7 @@ std::optional<ValueType> BPT_TYPE::find(const KeyType& key) {
 }
 
 BPT_TEMPLATE_ARGS
-void BPT_TYPE::find_all(const KeyType& key, std::vector<ValueType>& vec) {
+void BPT_TYPE::find_all(const KeyType& key, sjtu::vector<ValueType>& vec) {
     vec.clear();
     if (root_ == 0) {
         return;

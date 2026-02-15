@@ -3,7 +3,8 @@
 
 #include <cstddef>
 #include <string>
-#include <vector>
+
+#include "../stl/vector.hpp"
 
 namespace sjtu {
 
@@ -14,13 +15,13 @@ struct Token {
 
 class TokenStream {
 private:
-    std::vector<Token> tokens_;
+    sjtu::vector<Token> tokens_;
     size_t cur_;
 
 public:
     TokenStream() = default;
 
-    explicit TokenStream(std::vector<Token>&& tokens);
+    explicit TokenStream(sjtu::vector<Token>&& tokens);
 
     TokenStream(const std::string& line);
 

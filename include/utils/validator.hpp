@@ -4,7 +4,8 @@
 #include <iostream>
 #include <string>
 #include <cstdint>
-#include <vector>
+
+#include "../stl/vector.hpp"
 
 enum class UnicodeScript {
     Unknown = 0,
@@ -64,11 +65,11 @@ bool is_han(char32_t cp);
 
 bool is_cspecial(char32_t cp);
 
-std::vector<char32_t> utf8_to_utf32(const std::string& str);
+sjtu::vector<char32_t> utf8_to_utf32(const std::string& str);
 
 class UnicodeValidator {
 private:
-    std::vector<char32_t> utf32_str_;
+    sjtu::vector<char32_t> utf32_str_;
     bool valid_;
 public:
     UnicodeValidator(const std::string& str, bool valid = true);

@@ -2,7 +2,7 @@
 
 namespace sjtu {
 
-TokenStream::TokenStream(std::vector<Token>&& tokens) : tokens_(std::move(tokens)), cur_(0) {}
+TokenStream::TokenStream(sjtu::vector<Token>&& tokens) : tokens_(std::move(tokens)), cur_(0) {}
 
 TokenStream::TokenStream(const std::string& line) : cur_(0) {
     std::string text;
