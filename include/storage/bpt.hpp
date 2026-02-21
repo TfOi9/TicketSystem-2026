@@ -469,6 +469,7 @@ void BPT_TYPE::merge() {
         buffer_.finish_use(bpos);
         buffer_.finish_use(fpos);
         buffer_.finish_use(cur_pos);
+        buffer_.delete_page(cur_pos);
         if (need_balance) {
             pos_ = fpos;
             balance();
@@ -506,6 +507,7 @@ void BPT_TYPE::merge() {
         buffer_.finish_use(bpos);
         buffer_.finish_use(fpos);
         buffer_.finish_use(cur_pos);
+        buffer_.delete_page(bpos);
         if (need_balance) {
             pos_ = fpos;
             balance();

@@ -60,6 +60,8 @@ public:
 
     void finish_use(diskpos_t pos);
 
+    void delete_page(diskpos_t pos);
+
     void clear();
 
 };
@@ -205,6 +207,11 @@ void BUFFER_MANAGER_TYPE::set_root_pos(diskpos_t pos) {
 BUFFER_MANAGER_TEMPLATE_ARGS
 void BUFFER_MANAGER_TYPE::finish_use(diskpos_t pos) {
     cache_in_use_.erase(pos);
+}
+
+BUFFER_MANAGER_TEMPLATE_ARGS
+void BUFFER_MANAGER_TYPE::delete_page(diskpos_t pos) {
+    disk_.erase(pos);
 }
 
 BUFFER_MANAGER_TEMPLATE_ARGS
