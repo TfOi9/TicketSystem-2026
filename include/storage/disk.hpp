@@ -11,7 +11,7 @@ namespace sjtu {
 #define DISKMANAGER_TYPE DiskManager<FixedType, FixedInfoType, info_len>
 #define DISKMANAGER_TEMPLATE_ARGS template<typename FixedType, typename FixedInfoType, int info_len>
 
-template<typename FixedType, typename FixedInfoType = diskpos_t, int info_len = 6>
+template<typename FixedType, typename FixedInfoType = diskpos_t, int info_len = 12>
 class DiskManager {
 private:
     std::fstream file_;
@@ -24,7 +24,7 @@ private:
     /*
         Current info area distribution:
 
-            [1. root of BPT] [2. size of free list] [3. free pos #1] ... [6. free pos #4]
+            [1. root of BPT] [2. size of free list] [3. free pos #1] ... [(n + 2). free pos #n]
 
     */
 
