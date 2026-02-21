@@ -11,7 +11,7 @@ namespace sjtu {
 #define DISKMANAGER_TYPE DiskManager<FixedType, FixedInfoType, info_len, reuse>
 #define DISKMANAGER_TEMPLATE_ARGS template<typename FixedType, typename FixedInfoType, int info_len, bool reuse>
 
-template<typename FixedType, typename FixedInfoType = diskpos_t, int info_len = 12, bool reuse = true>
+template<typename FixedType, typename FixedInfoType = diskpos_t, int info_len = 12, bool reuse = false>
 class DiskManager {
 private:
     std::fstream file_;
