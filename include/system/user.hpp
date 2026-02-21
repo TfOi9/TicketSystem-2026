@@ -2,10 +2,11 @@
 #define USER_HPP
 
 #include <optional>
+#include <string>
 
 #include "../utils/fixed_string.hpp"
 #include "../storage/bpt.hpp"
-#include "../stl/unordered_set.hpp"
+#include "../stl/unordered_map.hpp"
 
 namespace sjtu {
 
@@ -43,12 +44,16 @@ public:
         return privilege_;
     }
 
+    std::string stringify() const {
+        return username() + name() + email() + (privilege_ == 10 ? "10" : std::string() + char('0' + privilege_));
+    }
+
 };
 
 class UserManager {
 private:
     BPlusTree<FixedString<20>, User> user_map_;
-    sjtu::unordered_set<FixedString<20>> login_list_;
+    sjtu::unordered_map<FixedString<20>, int> login_list_;
 
 public:
     UserManager(const std::string& file_name = "user.dat") : user_map_(file_name) {}
@@ -61,11 +66,9 @@ public:
 
     int logout(const std::string& username);
 
-    int print_profile(const std::string& cur_username, const std::string& username);
-
     std::optional<User> query_profile(const std::string& cur_username, const std::string& username);
 
-    std::optional<User> modify_profile(const std::string& cur_username, const std::string& username, const User& modified_user);
+    std::optional<User> modify_profile(const std::string& cur_username, const std::string& username, const std::string& password = "", const std::string& name = "", const std::string& email = "", int privilege = -1);
 
 };
 
