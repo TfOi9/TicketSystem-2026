@@ -8,10 +8,10 @@
 #include "../config.hpp"
 
 namespace sjtu {
-#define DISKMANAGER_TYPE DiskManager<FixedType, FixedInfoType, info_len>
-#define DISKMANAGER_TEMPLATE_ARGS template<typename FixedType, typename FixedInfoType, int info_len>
+#define DISKMANAGER_TYPE DiskManager<FixedType, FixedInfoType, info_len, reuse>
+#define DISKMANAGER_TEMPLATE_ARGS template<typename FixedType, typename FixedInfoType, int info_len, bool reuse>
 
-template<typename FixedType, typename FixedInfoType = diskpos_t, int info_len = 12>
+template<typename FixedType, typename FixedInfoType = diskpos_t, int info_len = 12, bool reuse = true>
 class DiskManager {
 private:
     std::fstream file_;
@@ -188,7 +188,9 @@ void DISKMANAGER_TYPE::restore_list() {
 
 DISKMANAGER_TEMPLATE_ARGS
 DISKMANAGER_TYPE::~DiskManager() {
-    flush_list();
+    if (reuse) {
+        flush_list();
+    }
     if (file_.is_open()) {
         file_.close();
     }
@@ -198,7 +200,7 @@ DISKMANAGER_TEMPLATE_ARGS
 bool DISKMANAGER_TYPE::initialise(const std::string& file_name) {
     file_name_ = file_name;
     bool f = open_file();
-    if (f) {
+    if (f && reuse) {
         restore_list();
     }
     return f;
@@ -262,7 +264,9 @@ diskpos_t DISKMANAGER_TYPE::write(FixedType& t) {
 
 DISKMANAGER_TEMPLATE_ARGS
 void DISKMANAGER_TYPE::erase(diskpos_t pos) {
-    free_.push(pos);
+    if (reuse) {
+        free_.push(pos);
+    }
 }
 
 DISKMANAGER_TEMPLATE_ARGS
