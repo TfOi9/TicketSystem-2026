@@ -3,7 +3,7 @@
 
 namespace sjtu {
 
-int UserManager::add_user(const std::string &cur_username, const std::string &username, const std::string &password, const std::string &name, const std::string &email, int privilege) {
+int UserSystem::add_user(const std::string &cur_username, const std::string &username, const std::string &password, const std::string &name, const std::string &email, int privilege) {
     auto it = login_list_.find(FixedString<20>(cur_username));
     if (it == login_list_.end()) {
         return -1;
@@ -19,7 +19,7 @@ int UserManager::add_user(const std::string &cur_username, const std::string &us
     return 0;
 }
 
-int UserManager::login(const std::string &username, const std::string &password) {
+int UserSystem::login(const std::string &username, const std::string &password) {
     FixedString<20> fixed_username = FixedString<20>(username);
     if (login_list_.find(fixed_username) != login_list_.end()) {
         return -1;
@@ -35,11 +35,11 @@ int UserManager::login(const std::string &username, const std::string &password)
     return 0;
 }
 
-int UserManager::logout(const std::string &username) {
+int UserSystem::logout(const std::string &username) {
     return login_list_.erase(FixedString<20>(username)) ? 0 : -1;
 }
 
-std::optional<User> UserManager::query_profile(const std::string &cur_username, const std::string &username) {
+std::optional<User> UserSystem::query_profile(const std::string &cur_username, const std::string &username) {
     auto it = login_list_.find(FixedString<20>(cur_username));
     if (it == login_list_.end()) {
         return std::nullopt;
@@ -54,7 +54,7 @@ std::optional<User> UserManager::query_profile(const std::string &cur_username, 
     return target_user;
 }
 
-std::optional<User> UserManager::modify_profile(const std::string &cur_username, const std::string &username, const std::string& password, const std::string& name, const std::string& email, int privilege) {
+std::optional<User> UserSystem::modify_profile(const std::string &cur_username, const std::string &username, const std::string& password, const std::string& name, const std::string& email, int privilege) {
     auto it = login_list_.find(FixedString<20>(cur_username));
     if (it == login_list_.end()) {
         return std::nullopt;

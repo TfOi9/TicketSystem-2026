@@ -50,15 +50,15 @@ public:
 
 };
 
-class UserManager {
+class UserSystem {
 private:
     BPlusTree<FixedString<20>, User> user_map_;
     sjtu::unordered_map<FixedString<20>, int> login_list_;
 
 public:
-    UserManager(const std::string& file_name = "user.dat") : user_map_(file_name) {}
+    UserSystem(const std::string& file_name = "user.dat") : user_map_(file_name) {}
 
-    ~UserManager() = default;
+    ~UserSystem() = default;
 
     int add_user(const std::string& cur_username, const std::string& username, const std::string& password, const std::string& name, const std::string& email, int privilege);
 

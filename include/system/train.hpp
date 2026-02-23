@@ -29,7 +29,7 @@ struct TrainPosition {
     int pos_;
 };
 
-class TrainManager {
+class TrainSystem {
 private:
     MemoryRiver<Train> trains_;
     MemoryRiver<FixedString<40>> stations_;
@@ -38,7 +38,7 @@ private:
     BPlusTree<int, TrainPosition> position_map_;
 
 public:
-    TrainManager(const std::string& name = "train_manager") :
+    TrainSystem(const std::string& name = "train_manager") :
         trains_(name + "_trains.dat"), stations_(name + "_stations.dat"), train_map_(name + "train_map.dat"),
         station_map_(name + "_station_map.dat"), position_map_(name + "position_map.dat") {}
 
