@@ -44,6 +44,8 @@ public:
 
     void erase(const KeyType& key, const ValueType& val);
 
+    void serialize(sjtu::vector<ValueType>& vec);
+
     void clear();
 
 };
@@ -545,6 +547,30 @@ void BPT_TYPE::balance() {
         return;
     }
     merge();
+}
+
+BPT_TEMPLATE_ARGS
+void BPT_TYPE::serialize(sjtu::vector<ValueType>& vec) {
+    vec.clear();
+    if (root_ == 0) {
+        return;
+    }
+    diskpos_t cur_pos = root_;
+    auto page = buffer_.get_page(cur_pos);
+    while (page->type_ != PageType::Leaf) {
+        cur_pos = page->ch_[0];
+        page = buffer_.get_page(cur_pos);
+    }
+    while (true) {
+        for (int i = 0; i < static_cast<int>(page->size_); i++) {
+            vec.push_back(page->data_[i].val_);
+        }
+        if (page->right_ == -1) {
+            break;
+        }
+        cur_pos = page->right_;
+        page = buffer_.get_page(cur_pos);
+    }
 }
 
 BPT_TEMPLATE_ARGS
