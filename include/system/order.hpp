@@ -28,8 +28,7 @@ enum class TicketStatus {
 
 struct OrderInfo {
     FixedString<20> user_;
-    date purchase_date_;
-    time purchase_time;
+    int purchase_timestamp_;
 };
 
 struct Order {
