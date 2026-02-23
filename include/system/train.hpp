@@ -10,7 +10,6 @@
 namespace sjtu {
 
 struct Train {
-private:
     FixedString<20> trainID_;
     int stationNum_;
     int stations_[100];
@@ -30,18 +29,13 @@ struct TrainPosition {
     int pos_;
 };
 
-struct TrainInStation {
-    int station_id_;
-    int train_id_;
-};
-
 class TrainManager {
 private:
     MemoryRiver<Train> trains_;
     MemoryRiver<FixedString<40>> stations_;
     BPlusTree<FixedString<20>, int> train_map_;
     BPlusTree<FixedString<40>, int> station_map_;
-    BPlusTree<TrainInStation, TrainPosition> position_map_;
+    BPlusTree<int, TrainPosition> position_map_;
 
 public:
     TrainManager(const std::string& name = "train_manager") :
@@ -52,11 +46,11 @@ public:
 
     int station_id(const std::string& station_name);
 
-    std::string train_name(int train_id);
-
     std::string station_name(int station_id);
 
     int add_train(Train& train);
+
+    int add_station(const std::string& station_name);
 
     int delete_train(const std::string& train_name);
 
@@ -66,11 +60,9 @@ public:
 
     Train query_train(int train_id);
 
-    int update_train(const std::string& train_name, Train& modified_train);
+    int query_station(const std::string& station_name, sjtu::vector<TrainPosition>& station_info);
 
-    int query_station(const std::string& station_name, sjtu::vector<TrainInStation>& station_info);
-
-    int query_station(int station_id, sjtu::vector<TrainInStation>& station_info);
+    int query_station(int station_id, sjtu::vector<TrainPosition>& station_info);
 
     void clear();
 

@@ -54,6 +54,23 @@ public:
         return f;
     }
 
+    void clear() {
+        if (file.is_open()) {
+            file.close();
+        }
+        file.open(file_name, std::ios::out | std::ios::binary | std::ios::trunc);
+        if (!file) {
+            return;
+        }
+        file.close();
+        file.open(file_name, std::ios::in | std::ios::out | std::ios::binary);
+        if (!file) {
+            return;
+        }
+        size_ = 1;
+        write_info(size_, 1);
+    }
+
     void get_info(int &tmp, int n) {
         if (n > info_len) return;
         if (!file.is_open()) {

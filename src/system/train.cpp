@@ -1,0 +1,111 @@
+#include "../../include/system/train.hpp"
+
+namespace sjtu {
+int TrainManager::train_id(const std::string& train_name) {
+    auto ans = train_map_.find(FixedString<20>(train_name));
+    return ans.has_value() ? ans.value() : -1;
+}
+
+int TrainManager::station_id(const std::string &station_name) {
+    auto ans = station_map_.find(FixedString<40>(station_name));
+    return ans.has_value() ? ans.value() : -1;
+}
+
+std::string TrainManager::station_name(int station_id) {
+    FixedString<40> ans;
+    stations_.read(ans, station_id);
+    return ans.str();
+}
+
+int TrainManager::add_train(Train& train) {
+    auto ans = train_map_.find(train.trainID_);
+    if (ans.has_value()) {
+        return ans.value();
+    }
+    int train_id = trains_.write(train);
+    train_map_.insert(train.trainID_, train_id);
+    return train_id;
+}
+
+int TrainManager::add_station(const std::string &station_name) {
+    FixedString<40> str(station_name);
+    auto ans = station_map_.find(str);
+    if (ans.has_value()) {
+        return ans.value();
+    }
+    int station_id = stations_.write(str);
+    station_map_.insert(str, station_id);
+    return station_id;
+}
+
+int TrainManager::delete_train(const std::string &train_name) {
+    auto ans = train_map_.find(FixedString<20>(train_name));
+    if (!ans.has_value()) {
+        return -1;
+    }
+    Train train;
+    trains_.read(train, ans.value());
+    if (train.released_) {
+        return -1;
+    }
+    train_map_.erase(FixedString<20>(train_name), ans.value());
+    return 0;
+}
+
+int TrainManager::release_train(const std::string &train_name) {
+    auto ans = train_map_.find(FixedString<20>(train_name));
+    if (!ans.has_value()) {
+        return -1;
+    }
+    Train train;
+    trains_.read(train, ans.value());
+    if (train.released_) {
+        return -1;
+    }
+    train.released_ = true;
+    trains_.update(train, ans.value());
+    for (int i = 0; i < train.stationNum_; i++) {
+        position_map_.insert(train.stations_[i], {ans.value(), i});
+    }
+    return 0;
+}
+
+Train TrainManager::query_train(const std::string& train_name) {
+    auto ans = train_map_.find(FixedString<20>(train_name));
+    if (!ans.has_value()) {
+        return Train();
+    }
+    Train train;
+    trains_.read(train, ans.value());
+    return train;
+}
+
+Train TrainManager::query_train(int train_id) {
+    Train train;
+    trains_.read(train, train_id);
+    return train;
+}
+
+int TrainManager::query_station(const std::string& station_name, sjtu::vector<TrainPosition>& station_info) {
+    auto ans= station_map_.find(FixedString<40>(station_name));
+    if (!ans.has_value()) {
+        return -1;
+    }
+    position_map_.find_all(ans.value(), station_info);
+    return 0;
+}
+
+int TrainManager::query_station(int station_id, sjtu::vector<TrainPosition>& station_info) {
+    position_map_.find_all(station_id, station_info);
+    return 0;
+}
+
+void TrainManager::clear() {
+    trains_.clear();
+    stations_.clear();
+    train_map_.clear();
+    station_map_.clear();
+    position_map_.clear();
+}
+
+} // namespace sjtu
