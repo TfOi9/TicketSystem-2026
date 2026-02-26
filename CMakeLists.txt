@@ -12,7 +12,7 @@ add_executable(
 	main
 	src/command/command.cpp src/command/token.cpp
 	src/system/order.cpp src/system/ticket.cpp src/system/train.cpp src/system/user.cpp
-	src/utils/validator.cpp
+	src/utils/time_date.cpp src/utils/validator.cpp
 	src/main.cpp
 )
 

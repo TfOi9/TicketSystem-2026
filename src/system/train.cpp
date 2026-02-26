@@ -20,11 +20,11 @@ std::string TrainSystem::station_name(int station_id) {
 int TrainSystem::add_train(Train& train) {
     auto ans = train_map_.find(train.trainID_);
     if (ans.has_value()) {
-        return ans.value();
+        return -1;
     }
     int train_id = trains_.write(train);
     train_map_.insert(train.trainID_, train_id);
-    return train_id;
+    return 0;
 }
 
 int TrainSystem::add_station(const std::string &station_name) {

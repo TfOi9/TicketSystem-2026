@@ -1,6 +1,9 @@
 #ifndef TIME_DATE_HPP
 #define TIME_DATE_HPP
 
+#include <string>
+#include <exception>
+
 namespace sjtu {
 
 struct time {
@@ -31,6 +34,10 @@ struct date {
 
     date(int month = 1, int day = 1) : month_(month), day_(day) {}
 };
+
+time parse_time(const std::string& str);
+
+date parse_date(const std::string& str);
 
 } // namespace sjtu
 

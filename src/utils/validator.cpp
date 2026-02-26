@@ -1,4 +1,5 @@
 #include "../../include/utils/validator.hpp"
+#include <stdexcept>
 
 UnicodeScript detect_script(char32_t cp) {
     if (is_ascii(cp)) {
@@ -218,6 +219,28 @@ int verify_privilege(const std::string& str) {
     return str[0] - '0';
 }
 
+bool verify_train_name(const std::string& str) {
+    if (!Validator(str).max_len(20).min_len(1).normal_char_only()) {
+        return false;
+    }
+    if (!(str[0] >= 'A' && str[0] <= 'Z' || str[0] >= 'a' && str[0] <= 'z')) {
+        return false;
+    }
+    return true;
+}
+
+bool verify_station_name(const std::string& str) {
+    try {
+        if (!UnicodeValidator(str).max_len(10).min_len(1).han()) {
+            return false;
+        }
+        return true;
+    }
+    catch(...) {
+        return false;
+    }
+}
+
 bool is_ascii(char32_t cp) {
     return cp <= 0x7F;
 }
@@ -287,6 +310,21 @@ sjtu::vector<char32_t> utf8_to_utf32(const std::string& str) {
         i += len;
     }
     return result;
+}
+
+sjtu::vector<std::string> separate_by_pipe(const std::string& str) {
+    int last_pos = 0;
+    sjtu::vector<std::string> ret;
+    for (int i = 0; i <= str.size(); i++) {
+        if (i == str.size() || str[i] == '|') {
+            int len = i - last_pos;
+            if (len > 0) {
+                ret.push_back(str.substr(last_pos, len));
+            }
+            last_pos = i + 1;
+        }
+    }
+    return ret;
 }
 
 UnicodeValidator::UnicodeValidator(const std::string& str, bool valid) : utf32_str_(utf8_to_utf32(str)), valid_(valid) {}
@@ -423,4 +461,21 @@ UnicodeValidator& UnicodeValidator::han() {
 
 UnicodeValidator::operator bool() const {
     return valid_;
+}
+
+int sjtu::stoi(const std::string &str) {
+    if (str.size() > 10 || (str.size() > 1 && str[0] == '0')) {
+        throw std::invalid_argument("Invalid integer string");
+    }
+    long long val = 0ll;
+    for (int i = 0; i < str.size(); i++) {
+        if (str[i] < '0' || str[i] > '9') {
+            throw std::invalid_argument("Invalid integer string");
+        }
+        val = val * 10ll + (long long)(str[i] - '0');
+    }
+    if (val > 2147483647ll) {
+        throw std::invalid_argument("Overflow");
+    }
+    return int(val);
 }

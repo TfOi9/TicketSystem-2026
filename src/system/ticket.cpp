@@ -225,11 +225,177 @@ void TicketSystem::query_profile() {
 }
 
 void TicketSystem::modify_profile() {
-    std::cout << "modify_profile\n";
+    // std::cout << "modify_profile\n";
+    if (!verify_username(cmd_->arg('c')) || !verify_username(cmd_->arg('u'))) {
+        std::cout << "-1\n";
+        return;
+    }
+    if (!cmd_->arg('p').empty() && !verify_password(cmd_->arg('p'))) {
+        std::cout << "-1\n";
+        return;
+    }
+    if (!cmd_->arg('n').empty() && !verify_chinese_name(cmd_->arg('n'))) {
+        std::cout << "-1\n";
+        return;
+    }
+    if (!cmd_->arg('m').empty() && !verify_email(cmd_->arg('m'))) {
+        std::cout << "-1\n";
+        return;
+    }
+    int g = -1;
+    if (!cmd_->arg('g').empty() && (g = verify_privilege(cmd_->arg('g'))) == -1) {
+        std::cout << "-1\n";
+        return;
+    }
+    std::cerr << g << std::endl;
+    auto profile = user_.modify_profile(cmd_->arg('c'), cmd_->arg('u'), cmd_->arg('p'),
+        cmd_->arg('n'), cmd_->arg('m'), g);
+    if (profile == std::nullopt) {
+        std::cout << "-1\n";
+    }
+    else {
+        std::cout << profile->username() << " " << profile->name() << " " << profile->email() << " " << profile->privilege() << "\n";
+    }
 }
 
 void TicketSystem::add_train() {
-    std::cout << "add_train\n";
+    // std::cout << "add_train\n";
+    Train train;
+    if (!verify_train_name(cmd_->arg('i'))) {
+        std::cout << "-1\n";
+        return;
+    }
+    try {
+        train.stationNum_ = sjtu::stoi(cmd_->arg('n'));
+    }
+    catch(...) {
+        std::cerr << "bad name\n";
+        std::cout << "-1\n";
+        return;
+    }
+    if (train.stationNum_ < 2 || train.stationNum_ > 100) {
+        std::cerr << "bad station num\n";
+        std::cout << "-1\n";
+        return;
+    }
+    try {
+        train.seatNum_ = sjtu::stoi(cmd_->arg('m'));
+    }
+    catch(...) {
+        std::cerr << "bad seat num\n";
+        std::cout << "-1\n";
+        return;
+    }
+    if (train.seatNum_ > 100000) {
+        std::cerr << "too many seats\n";
+        std::cout << "-1\n";
+        return;
+    }
+    sjtu::vector<std::string> stations = separate_by_pipe(cmd_->arg('s'));
+    if (stations.size() != train.stationNum_) {
+        std::cerr << "bad station str\n";
+        std::cout << "-1\n";
+        return;
+    }
+    for (int i = 0; i < train.stationNum_; i++) {
+        std::string str = stations[i];
+        if (!verify_station_name(str)) {
+            std::cerr << "some bad station name\n";
+            std::cout << "-1\n";
+            return;
+        }
+        int station_id = train_.add_station(str);
+        train.stations_[i] = station_id;
+    }
+    sjtu::vector<std::string> prices = separate_by_pipe(cmd_->arg('p'));
+    if (prices.size() != train.stationNum_ - 1) {
+        std::cerr << "bad price str\n";
+        std::cout << "-1\n";
+        return;
+    }
+    try {
+        for (int i = 0; i < train.stationNum_ - 1; i++) {
+            train.prices_[i] = sjtu::stoi(prices[i]);
+        }
+    }
+    catch(...) {
+        std::cerr << "some bad prices\n";
+        std::cout << "-1\n";
+        return;
+    }
+    try {
+        train.startTime_ = parse_time(cmd_->arg('x'));
+    }
+    catch(...) {
+        std::cerr << "bad time\n";
+        std::cout << "-1\n";
+        return;
+    }
+    sjtu::vector<std::string> travelTimes = separate_by_pipe(cmd_->arg('t'));
+    if (travelTimes.size() != train.stationNum_ - 1) {
+        std::cerr << "bad travel time str\n";
+        std::cout << "-1\n";
+        return;
+    }
+    try {
+        for (int i = 0; i < train.stationNum_ - 1; i++) {
+            train.travelTimes_[i] = sjtu::stoi(travelTimes[i]);
+        }
+    }
+    catch(...) {
+        std::cerr << "some bad travel times\n";
+        std::cout << "-1\n";
+        return;
+    }
+    if (train.stationNum_ == 2) {
+        if (cmd_->arg('o') != "_") {
+            std::cerr << "o_\n";
+            std::cout << "-1\n";
+            return;
+        }
+    }
+    else {
+        sjtu::vector<std::string> stopoverTimes = separate_by_pipe(cmd_->arg('o'));
+        if (stopoverTimes.size() != train.stationNum_ - 2) {
+            std::cerr << "bad stopover times str\n";
+            std::cout << "-1\n";
+            return;
+        }
+        try {
+            for (int i = 0; i < train.stationNum_ - 2; i++) {
+                train.stopoverTimes_[i + 1] = sjtu::stoi(stopoverTimes[i]);
+            }
+        }
+        catch(...) {
+            std::cerr << "some bad stopover times\n";
+            std::cout << "-1\n";
+            return;
+        }
+    }
+    if (cmd_->arg('d').size() != 11 || cmd_->arg('d')[5] != '|') {
+        std::cerr << "bad date syntax\n";
+        std::cout << "-1\n";
+        return;
+    }
+    try {
+        train.startSaleDate_ = parse_date(cmd_->arg('d').substr(0, 5));
+        train.endSaleDate_ = parse_date(cmd_->arg('d').substr(6, 5));
+    }
+    catch(...) {
+        std::cerr << "bad date\n";
+        std::cout << "-1\n";
+        return;
+    }
+    std::string y = cmd_->arg('y');
+    if (y.size() != 1 || y[0] < 'A' || y[0] > 'Z') {
+        std::cerr << "bad type\n";
+        std::cout << "-1\n";
+        return;
+    }
+    train.type_ = y[0];
+    train.released_ = false;
+    int ret = train_.add_train(train);
+    std::cout << ret << "\n";
 }
 
 void TicketSystem::delete_train() {

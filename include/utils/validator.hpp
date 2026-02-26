@@ -67,6 +67,10 @@ bool verify_email(const std::string& str);
 
 int verify_privilege(const std::string& str);
 
+bool verify_train_name(const std::string& str);
+
+bool verify_station_name(const std::string& str);
+
 bool is_ascii(char32_t cp);
 
 bool is_visible_ascii(char32_t cp);
@@ -76,6 +80,8 @@ bool is_han(char32_t cp);
 bool is_cspecial(char32_t cp);
 
 sjtu::vector<char32_t> utf8_to_utf32(const std::string& str);
+
+sjtu::vector<std::string> separate_by_pipe(const std::string& str);
 
 class UnicodeValidator {
 private:
@@ -108,5 +114,7 @@ public:
 
     operator bool() const;
 };
+
+namespace sjtu { int stoi(const std::string& str); }
 
 #endif
