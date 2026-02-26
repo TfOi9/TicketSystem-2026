@@ -56,7 +56,7 @@ private:
     sjtu::unordered_map<FixedString<20>, int> login_list_;
 
 public:
-    UserSystem(const std::string& file_name = "user.dat") : user_map_(file_name) {}
+    UserSystem(const std::string& file_name = "user") : user_map_(file_name + ".dat") {}
 
     ~UserSystem() = default;
 
