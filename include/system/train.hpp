@@ -9,15 +9,19 @@
 
 namespace sjtu {
 
+constexpr int max_stations = 100;
+
 struct Train {
     FixedString<20> trainID_;
     int stationNum_;
-    int stations_[100];
+    int stations_[max_stations];
     int seatNum_;
-    int prices_[100];
+    int prices_[max_stations];
     time startTime_;
-    int travelTimes_[100];
-    int stopoverTimes_[100];
+    int travelTimes_[max_stations];
+    int stopoverTimes_[max_stations];
+    time arrivalTimes_[max_stations];
+    int seats_[92][max_stations];
     date startSaleDate_;
     date endSaleDate_;
     char type_;
@@ -39,8 +43,8 @@ private:
 
 public:
     TrainSystem(const std::string& name = "train") :
-        trains_(name + "_trains.dat"), stations_(name + "_stations.dat"), train_map_(name + "train_map.dat"),
-        station_map_(name + "_station_map.dat"), position_map_(name + "position_map.dat") {}
+        trains_(name + "_trains.dat"), stations_(name + "_stations.dat"), train_map_(name + "_train_map.dat"),
+        station_map_(name + "_station_map.dat"), position_map_(name + "_position_map.dat") {}
 
     int train_id(const std::string& train_name);
 

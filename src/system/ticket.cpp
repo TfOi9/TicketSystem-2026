@@ -265,6 +265,7 @@ void TicketSystem::add_train() {
         std::cout << "-1\n";
         return;
     }
+    train.trainID_ = FixedString<20>(cmd_->arg('i'));
     try {
         train.stationNum_ = sjtu::stoi(cmd_->arg('n'));
     }
@@ -362,6 +363,7 @@ void TicketSystem::add_train() {
             return;
         }
         try {
+            train.stopoverTimes_[0] = 0;
             for (int i = 0; i < train.stationNum_ - 2; i++) {
                 train.stopoverTimes_[i + 1] = sjtu::stoi(stopoverTimes[i]);
             }
@@ -394,6 +396,15 @@ void TicketSystem::add_train() {
     }
     train.type_ = y[0];
     train.released_ = false;
+    train.arrivalTimes_[0] = train.startTime_;
+    for (int i = 1; i < train.stationNum_; i++) {
+        train.arrivalTimes_[i] = train.arrivalTimes_[i - 1] + (train.travelTimes_[i - 1] + train.stopoverTimes_[i - 1]);
+    }
+    for (int i = int(train.startSaleDate_); i <= int(train.endSaleDate_); i++) {
+        for (int j = 0; j < train.stationNum_ - 1; j++) {
+            train.seats_[i][j] = train.seatNum_;
+        }
+    }
     int ret = train_.add_train(train);
     std::cout << ret << "\n";
 }

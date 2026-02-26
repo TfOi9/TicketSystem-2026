@@ -33,6 +33,19 @@ struct date {
     int day_;
 
     date(int month = 1, int day = 1) : month_(month), day_(day) {}
+
+    explicit operator int() const {
+        switch (month_) {
+            case 6:
+                return day_ - 1;
+            case 7:
+                return day_ + 29;
+            case 8:
+                return day_ + 60;
+            default:
+                return -1;
+        }
+    }
 };
 
 time parse_time(const std::string& str);
