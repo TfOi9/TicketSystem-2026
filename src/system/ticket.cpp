@@ -1,4 +1,6 @@
 #include "../../include/system/ticket.hpp"
+#include "../../include/utils/validator.hpp"
+#include <optional>
 
 namespace sjtu {
 
@@ -161,19 +163,65 @@ void TicketSystem::run() {
 }
 
 void TicketSystem::add_user() {
-    std::cout << "add_user\n";
+    // std::cout << "add_user\n";
+    int ret = 0;
+    if (!verify_username(cmd_->arg('u')) || !verify_password(cmd_->arg('p'))
+        || !verify_chinese_name(cmd_->arg('n')) || !verify_email(cmd_->arg('m'))) {
+        std::cout << "-1\n";
+        return;
+    }
+    if (!init_) {
+        ret = user_.add_user("", cmd_->arg('u'), cmd_->arg('p'), cmd_->arg('n'), cmd_->arg('m'), 10);
+        if (!ret) {
+            init_ = true;
+        }
+    }
+    else {
+        int g = verify_privilege(cmd_->arg('g'));
+        if (g == -1 || !verify_username(cmd_->arg('c'))) {
+            std::cout << "-1\n";
+            return;
+        }
+        ret = user_.add_user(cmd_->arg('c'), cmd_->arg('u'), cmd_->arg('p'), cmd_->arg('n'), cmd_->arg('m'), g);
+    }
+    std::cout << ret << '\n';
 }
 
 void TicketSystem::login() {
-    std::cout << "login\n";
+    // std::cout << "login\n";
+    int ret = 0;
+    if (!verify_username(cmd_->arg('u')) || !verify_password(cmd_->arg('p'))) {
+        std::cout << "-1\n";
+        return;
+    }
+    ret = user_.login(cmd_->arg('u'), cmd_->arg('p'));
+    std::cout << ret << '\n';
 }
 
 void TicketSystem::logout() {
-    std::cout << "logout\n";
+    // std::cout << "logout\n";
+    int ret = 0;
+    if (!verify_username(cmd_->arg('u'))) {
+        std::cout << "-1\n";
+        return;
+    }
+    ret = user_.logout(cmd_->arg('u'));
+    std::cout << ret << '\n';
 }
 
 void TicketSystem::query_profile() {
-    std::cout << "query_profile\n";
+    // std::cout << "query_profile\n";
+    if (!verify_username(cmd_->arg('c')) || !verify_username(cmd_->arg('u'))) {
+        std::cout << "-1\n";
+        return;
+    }
+    auto profile = user_.query_profile(cmd_->arg('c'), cmd_->arg('u'));
+    if (profile == std::nullopt) {
+        std::cout << "-1\n";
+    }
+    else {
+        std::cout << profile->username() << " " << profile->name() << " " << profile->email() << " " << profile->privilege() << "\n";
+    }
 }
 
 void TicketSystem::modify_profile() {
@@ -217,7 +265,16 @@ void TicketSystem::refund_ticket() {
 }
 
 void TicketSystem::clear() {
-    std::cout << "clear\n";
+    // std::cout << "clear\n";
+    user_.clear();
+    train_.clear();
+    order_.clear();
+    timestamp_ = 0;
+    if (cmd_) {
+        delete cmd_;
+        cmd_ = nullptr;
+    }
+    init_ = false;
 }
 
 } // namespace sjtu

@@ -4,12 +4,14 @@
 namespace sjtu {
 
 int UserSystem::add_user(const std::string &cur_username, const std::string &username, const std::string &password, const std::string &name, const std::string &email, int privilege) {
-    auto it = login_list_.find(FixedString<20>(cur_username));
-    if (it == login_list_.end()) {
-        return -1;
-    }
-    if (*(it->second) <= privilege) {
-        return -1;
+    if (cur_username != "") {
+        auto it = login_list_.find(FixedString<20>(cur_username));
+        if (it == login_list_.end()) {
+            return -1;
+        }
+        if (*(it->second) <= privilege) {
+            return -1;
+        }
     }
     if (user_map_.find(FixedString<20>(username)) != std::nullopt) {
         return -1;
@@ -36,7 +38,11 @@ int UserSystem::login(const std::string &username, const std::string &password) 
 }
 
 int UserSystem::logout(const std::string &username) {
-    return login_list_.erase(FixedString<20>(username)) ? 0 : -1;
+    if (login_list_.find(FixedString<20>(username)) == login_list_.end()) {
+        return -1;
+    }
+    login_list_.erase(FixedString<20>(username));
+    return 0;
 }
 
 std::optional<User> UserSystem::query_profile(const std::string &cur_username, const std::string &username) {
@@ -76,6 +82,11 @@ std::optional<User> UserSystem::modify_profile(const std::string &cur_username, 
         login_list_[FixedString<20>(username)] = privilege;
     }
     return modified_user;
+}
+
+void UserSystem::clear() {
+    user_map_.clear();
+    login_list_.clear();
 }
 
 } // namespace sjtu

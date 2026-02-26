@@ -118,12 +118,12 @@ char FIXEDSTRING_TYPE::operator[](size_t index) const {
 FIXEDSTRING_TEMPLATE_ARGS
 std::string FIXEDSTRING_TYPE::str() const {
     std::string ret;
-    ret.reserve(length);
+    ret.reserve(length + 1);
     for (size_t i = 0; i < length; i++) {
-        ret.push_back(data_[i]);
         if (data_[i] == '\0') {
             break;
         }
+        ret.push_back(data_[i]);
     }
     return ret;
 }

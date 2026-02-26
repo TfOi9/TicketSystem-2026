@@ -169,6 +169,55 @@ Validator::operator bool() const {
     return valid_;
 }
 
+bool verify_username(const std::string& str) {
+    if (!Validator(str).max_len(20).min_len(1).normal_char_only()) {
+        return false;
+    }
+    if (!(str[0] >= 'A' && str[0] <= 'Z' || str[0] >= 'a' && str[0] <= 'z')) {
+        return false;
+    }
+    return true;
+}
+
+bool verify_password(const std::string& str) {
+    if (!Validator(str).max_len(30).min_len(1).visible_only()) {
+        return false;
+    }
+    return true;
+}
+
+bool verify_chinese_name(const std::string& str) {
+    try {
+        if (!UnicodeValidator(str).max_len(5).min_len(2).han()) {
+            return false;
+        }
+        return true;
+    }
+    catch(...) {
+        return false;
+    }
+}
+
+bool verify_email(const std::string& str) {
+    if (str.size() > 30) {
+        return false;
+    }
+    for (int i = 0; i < str.size(); i++) {
+        if (str[i] >= '0' && str[i] <= '9') continue;
+        if (str[i] >= 'A' && str[i] <= 'Z' || str[i] >= 'a' && str[i] <= 'z') continue;
+        if (str[i] == '.' || str[i] == '@') continue;
+        return false;
+    }
+    return true;
+}
+
+int verify_privilege(const std::string& str) {
+    if (str == "10") return 10;
+    if (str.size() != 1) return -1;
+    if (str[0] < '0' || str[0] > '9') return -1;
+    return str[0] - '0';
+}
+
 bool is_ascii(char32_t cp) {
     return cp <= 0x7F;
 }
@@ -364,8 +413,7 @@ UnicodeValidator& UnicodeValidator::han() {
     }
     for (int i = 0; i < utf32_str_.size(); i++) {
         UnicodeScript script = detect_script(utf32_str_[i]);
-        if (script != UnicodeScript::Ascii && script != UnicodeScript::Han &&
-            !is_cspecial(utf32_str_[i])) {
+        if (script != UnicodeScript::Han) {
             valid_ = false;
             break;
         }

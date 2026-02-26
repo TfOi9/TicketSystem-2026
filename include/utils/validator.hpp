@@ -57,6 +57,16 @@ public:
     operator bool() const;
 };
 
+bool verify_username(const std::string& str);
+
+bool verify_password(const std::string& str);
+
+bool verify_chinese_name(const std::string& str);
+
+bool verify_email(const std::string& str);
+
+int verify_privilege(const std::string& str);
+
 bool is_ascii(char32_t cp);
 
 bool is_visible_ascii(char32_t cp);

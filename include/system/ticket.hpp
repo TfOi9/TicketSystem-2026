@@ -15,6 +15,7 @@ private:
     OrderSystem order_;
     int timestamp_;
     Command *cmd_ = nullptr;
+    bool init_ = false;
 
 public:
     TicketSystem(const std::string& name = "ticket_system") :
