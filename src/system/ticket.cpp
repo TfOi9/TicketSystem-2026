@@ -160,4 +160,64 @@ void TicketSystem::run() {
     }
 }
 
+void TicketSystem::add_user() {
+    std::cout << "add_user\n";
+}
+
+void TicketSystem::login() {
+    std::cout << "login\n";
+}
+
+void TicketSystem::logout() {
+    std::cout << "logout\n";
+}
+
+void TicketSystem::query_profile() {
+    std::cout << "query_profile\n";
+}
+
+void TicketSystem::modify_profile() {
+    std::cout << "modify_profile\n";
+}
+
+void TicketSystem::add_train() {
+    std::cout << "add_train\n";
+}
+
+void TicketSystem::delete_train() {
+    std::cout << "delete_train\n";
+}
+
+void TicketSystem::release_train() {
+    std::cout << "release_train\n";
+}
+
+void TicketSystem::query_train() {
+    std::cout << "query_train\n";
+}
+
+void TicketSystem::query_ticket() {
+    std::cout << "query_ticket\n";
+}
+
+void TicketSystem::query_transfer() {
+    std::cout << "query_transfer\n";
+}
+
+void TicketSystem::buy_ticket() {
+    std::cout << "buy_ticket\n";
+}
+
+void TicketSystem::query_order() {
+    std::cout << "query_order\n";
+}
+
+void TicketSystem::refund_ticket() {
+    std::cout << "refund_ticket\n";
+}
+
+void TicketSystem::clear() {
+    std::cout << "clear\n";
+}
+
 } // namespace sjtu

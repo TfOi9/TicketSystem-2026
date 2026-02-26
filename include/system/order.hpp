@@ -31,6 +31,21 @@ struct OrderInfo {
     int purchase_timestamp_;
 };
 
+inline bool operator==(const OrderInfo& a, const OrderInfo& b) {
+    return a.user_ == b.user_ && a.purchase_timestamp_ == b.purchase_timestamp_;
+}
+
+inline bool operator!=(const OrderInfo& a, const OrderInfo& b) {
+    return !(a == b);
+}
+
+inline bool operator<(const OrderInfo& a, const OrderInfo& b) {
+    if (a.user_ == b.user_) {
+        return a.purchase_timestamp_ < b.purchase_timestamp_;
+    }
+    return a.user_ < b.user_;
+}
+
 struct Order {
     OrderInfo info_;
     TicketStatus status_;

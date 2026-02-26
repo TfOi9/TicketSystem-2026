@@ -63,12 +63,12 @@ std::string Command::arg(char key) const {
 
 bool Command::check(const std::string& must, const std::string& optional) {
     for (const char ch : must) {
-        if (args_[ch].empty()) {
+        if (args_[ch - 'a'].empty()) {
             return false;
         }
     }
     for (char ch = 'a'; ch <= 'z'; ch++) {
-        if (args_[ch].empty()) {
+        if (args_[ch - 'a'].empty()) {
             continue;
         }
         if (must.find(ch) == std::string::npos && optional.find(ch) == std::string::npos) {
