@@ -31,6 +31,12 @@ void OrderSystem::remove_pending_order(int pending_id) {
     }
 }
 
+void OrderSystem::flush() {
+    user_order_map_.flush();
+    order_map_.flush();
+    queue_map_.flush();
+}
+
 void OrderSystem::clear() {
     user_order_map_.clear();
     order_map_.clear();

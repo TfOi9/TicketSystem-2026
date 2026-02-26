@@ -100,6 +100,12 @@ int TrainSystem::query_station(int station_id, sjtu::vector<TrainPosition>& stat
     return 0;
 }
 
+void TrainSystem::flush() {
+    train_map_.flush();
+    station_map_.flush();
+    position_map_.flush();
+}
+
 void TrainSystem::clear() {
     trains_.clear();
     stations_.clear();

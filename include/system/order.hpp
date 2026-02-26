@@ -79,6 +79,8 @@ public:
 
     void remove_pending_order(int pending_id);
 
+    void flush();
+
     void clear();
 
 };

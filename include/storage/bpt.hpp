@@ -46,6 +46,8 @@ public:
 
     void serialize(sjtu::vector<ValueType>& vec);
 
+    void flush();
+
     void clear();
 
 };
@@ -571,6 +573,14 @@ void BPT_TYPE::serialize(sjtu::vector<ValueType>& vec) {
         cur_pos = page->right_;
         page = buffer_.get_page(cur_pos);
     }
+}
+
+BPT_TEMPLATE_ARGS
+void BPT_TYPE::flush() {
+    buffer_.set_root_pos(root_);
+    buffer_.flush();
+    cur_.reset();
+    pos_ = 0;
 }
 
 BPT_TEMPLATE_ARGS

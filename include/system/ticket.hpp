@@ -1,6 +1,8 @@
 #ifndef TICKET_HPP
 #define TICKET_HPP
 
+#include <csignal>
+
 #include "user.hpp"
 #include "train.hpp"
 #include "order.hpp"
@@ -23,7 +25,9 @@ public:
 
     ~TicketSystem();
 
-    void run();
+    void run(const volatile std::sig_atomic_t* signal_status = nullptr);
+
+    void flush();
 
     void add_user();
 

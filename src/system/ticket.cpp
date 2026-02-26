@@ -11,10 +11,24 @@ TicketSystem::~TicketSystem() {
     }
 }
 
-void TicketSystem::run() {
+void TicketSystem::run(const volatile std::sig_atomic_t* signal_status) {
     while (true) {
+        if (signal_status && *signal_status != 0) {
+            flush();
+            return;
+        }
         std::string line;
-        std::getline(std::cin, line);
+        if (!std::getline(std::cin, line)) {
+            if (signal_status && *signal_status != 0) {
+                flush();
+                return;
+            }
+            if (std::cin.eof()) {
+                return;
+            }
+            std::cin.clear();
+            continue;
+        }
         try {
             if (cmd_) {
                 delete cmd_;
@@ -160,6 +174,12 @@ void TicketSystem::run() {
             }
         }
     }
+}
+
+void TicketSystem::flush() {
+    user_.flush();
+    train_.flush();
+    order_.flush();
 }
 
 void TicketSystem::add_user() {

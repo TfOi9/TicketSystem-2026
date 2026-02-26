@@ -68,6 +68,8 @@ public:
 
     int query_station(int station_id, sjtu::vector<TrainPosition>& station_info);
 
+    void flush();
+
     void clear();
 
 };

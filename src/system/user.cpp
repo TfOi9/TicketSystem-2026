@@ -84,6 +84,10 @@ std::optional<User> UserSystem::modify_profile(const std::string &cur_username, 
     return modified_user;
 }
 
+void UserSystem::flush() {
+    user_map_.flush();
+}
+
 void UserSystem::clear() {
     user_map_.clear();
     login_list_.clear();
