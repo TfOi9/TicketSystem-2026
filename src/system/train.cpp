@@ -1,5 +1,7 @@
 #include "../../include/system/train.hpp"
+
 #include <optional>
+#include <cstring>
 
 namespace sjtu {
 int TrainSystem::train_id(const std::string& train_name) {
@@ -23,7 +25,7 @@ int TrainSystem::add_train(Train& train) {
     if (ans.has_value()) {
         return -1;
     }
-    int train_id = trains_.write(train);
+    diskpos_t train_id = trains_.write(train);
     train_map_.insert(train.trainID_, train_id);
     return 0;
 }

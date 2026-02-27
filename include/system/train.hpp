@@ -4,6 +4,7 @@
 #include "../../include/utils/fixed_string.hpp"
 #include "../../include/utils/time_date.hpp"
 #include "../../include/storage/bpt.hpp"
+#include "../../include/storage/dynamic_river.hpp"
 #include "../../include/storage/memory_river.hpp"
 #include "../../include/stl/vector.hpp"
 
@@ -12,8 +13,8 @@ namespace sjtu {
 constexpr int max_stations = 100;
 
 struct Train {
-    FixedString<20> trainID_;
     int stationNum_;
+    FixedString<20> trainID_;
     int stations_[max_stations];
     int seatNum_;
     int prices_[max_stations];
@@ -26,6 +27,62 @@ struct Train {
     date endSaleDate_;
     char type_;
     bool released_;
+};
+
+struct TrainStringifier {
+    char *operator()(Train& t, int& len) const {
+        char *data = new char[60 + t.stationNum_ * 396];
+        memcpy(data, reinterpret_cast<char *>(&(t.stationNum_)), 4);
+        for (int i = 0; i < 20; i++) {
+            data[i + 4] = t.trainID_[i];
+        }
+        memcpy(data + 24, reinterpret_cast<char *>(t.stations_), t.stationNum_ * 4);
+        memcpy(data + 24 + 4 * t.stationNum_, reinterpret_cast<char *>(&(t.seatNum_)), 4);
+        memcpy(data + 28 + 4 * t.stationNum_, reinterpret_cast<char *>(t.prices_), t.stationNum_ * 4);
+        memcpy(data + 28 + 8 * t.stationNum_, reinterpret_cast<char *>(&(t.startTime_)), 12);
+        memcpy(data + 40 + 8 * t.stationNum_, reinterpret_cast<char *>(t.travelTimes_), t.stationNum_ * 4);
+        memcpy(data + 40 + 12 * t.stationNum_, reinterpret_cast<char *>(t.stopoverTimes_), t.stationNum_ * 4);
+        memcpy(data + 40 + 16 * t.stationNum_, reinterpret_cast<char *>(t.arrivalTimes_), t.stationNum_ * 12);
+        for (int i = 0; i < 92; i++) {
+            memcpy(data + 40 + (28 + i * 4) * t.stationNum_, reinterpret_cast<char *>(t.seats_[i]), t.stationNum_ * 4);
+        }
+        memcpy(data + 40 + 396 * t.stationNum_, reinterpret_cast<char *>(&(t.startSaleDate_)), 8);
+        memcpy(data + 48 + 396 * t.stationNum_, reinterpret_cast<char *>(&(t.endSaleDate_)), 8);
+        data[56 + 396 * t.stationNum_] = t.type_;
+        data[57 + 396 * t.stationNum_] = t.released_;
+        return data;
+    }
+};
+
+struct TrainAntiStringifier {
+    Train operator()(const char *data) const {
+        Train t;
+        memcpy(reinterpret_cast<char *>(&(t.stationNum_)), data, 4);
+        for (int i = 0; i < 20; i++) {
+            t.trainID_[i] = data[i + 4];
+        }
+        memset(t.stations_, 0, sizeof(t.stations_));
+        memset(t.prices_, 0, sizeof(t.prices_));
+        memset(t.travelTimes_, 0, sizeof(t.travelTimes_));
+        memset(t.stopoverTimes_, 0, sizeof(t.stopoverTimes_));
+        memset(t.arrivalTimes_, 0, sizeof(t.arrivalTimes_));
+        memset(t.seats_, 0, sizeof(t.seats_));
+        memcpy(reinterpret_cast<char *>(t.stations_), data + 24, t.stationNum_ * 4);
+        memcpy(reinterpret_cast<char *>(&(t.seatNum_)), data + 24 + 4 * t.stationNum_, 4);
+        memcpy(reinterpret_cast<char *>(t.prices_), data + 28 + 4 * t.stationNum_, t.stationNum_ * 4);
+        memcpy(reinterpret_cast<char *>(&(t.startTime_)), data + 28 + 8 * t.stationNum_, 12);
+        memcpy(reinterpret_cast<char *>(t.travelTimes_), data + 40 + 8 * t.stationNum_, t.stationNum_ * 4);
+        memcpy(reinterpret_cast<char *>(t.stopoverTimes_), data + 40 + 12 * t.stationNum_, t.stationNum_ * 4);
+        memcpy(reinterpret_cast<char *>(t.arrivalTimes_), data + 40 + 16 * t.stationNum_, t.stationNum_ * 12);
+        for (int i = 0; i < 92; i++) {
+            memcpy(reinterpret_cast<char *>(t.seats_[i]), data + 40 + (28 + i * 4) * t.stationNum_, t.stationNum_ * 4);
+        }
+        memcpy(reinterpret_cast<char *>(&(t.startSaleDate_)), data + 40 + 396 * t.stationNum_, 8);
+        memcpy(reinterpret_cast<char *>(&(t.endSaleDate_)), data + 48 + 396 * t.stationNum_, 8);
+        t.type_ = data[56 + 396 * t.stationNum_];
+        t.released_ = data[57 + 396 * t.stationNum_] != 0;
+        return t;
+    }
 };
 
 struct TrainPosition {
@@ -60,6 +117,7 @@ struct TrainPositionCompare {
 class TrainSystem {
 private:
     MemoryRiver<Train> trains_;
+    
     MemoryRiver<FixedString<40>> stations_;
     BPlusTree<FixedString<20>, int> train_map_;
     BPlusTree<FixedString<40>, int> station_map_;
