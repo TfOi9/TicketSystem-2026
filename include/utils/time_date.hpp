@@ -28,6 +28,11 @@ struct time {
         }
         return time(new_hr, new_min, new_day);
     }
+
+    explicit operator int() const {
+        return day_offset_ * 1440 + hr_ * 60 + min_;
+    }
+
 };
 
 struct date {

@@ -33,6 +33,30 @@ struct TrainPosition {
     int pos_;
 };
 
+inline bool operator==(const TrainPosition& a, const TrainPosition& b) {
+    return a.train_id_ == b.train_id_ && a.pos_ == b.pos_;
+}
+
+inline bool operator!=(const TrainPosition& a, const TrainPosition& b) {
+    return !(a == b);
+}
+
+inline bool operator<(const TrainPosition& a, const TrainPosition& b) {
+    if (a.train_id_ == b.train_id_) {
+        return a.pos_ < b.pos_;
+    }
+    return a.train_id_ < b.train_id_;
+}
+
+struct TrainPositionCompare {
+    bool operator()(const TrainPosition& a, const TrainPosition& b) const {
+        if (a.train_id_ == b.train_id_) {
+            return a.pos_ < b.pos_;
+        }
+        return a.train_id_ < b.train_id_;
+    }
+};
+
 class TrainSystem {
 private:
     MemoryRiver<Train> trains_;

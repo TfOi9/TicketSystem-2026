@@ -9,14 +9,34 @@
 namespace sjtu {
 
 struct Ticket {
-    int train_id_;
+    FixedString<20> train_id_;
     int start_station_;
     int end_station_;
-    date travel_date_;
+    date departure_date_;
     time departure_time_;
+    date arrival_date_;
     time arrival_time_;
+    int duration_;
     int price_;
     int seat_;
+};
+
+struct TicketDurationCompare {
+    bool operator()(const Ticket& a, const Ticket& b) const {
+        if (a.duration_ == b.duration_) {
+            return a.train_id_ < b.train_id_;
+        }
+        return a.duration_ < b.duration_;
+    }
+};
+
+struct TicketPriceCompare {
+    bool operator()(const Ticket& a, const Ticket& b) const {
+        if (a.price_ == b.price_) {
+            return a.train_id_ < b.train_id_;
+        }
+        return a.price_ < b.price_;
+    }
 };
 
 enum class TicketStatus {
@@ -44,6 +64,11 @@ inline bool operator<(const OrderInfo& a, const OrderInfo& b) {
         return a.purchase_timestamp_ < b.purchase_timestamp_;
     }
     return a.user_ < b.user_;
+}
+
+inline std::ostream& operator<<(std::ostream& os, const OrderInfo& o) {
+    os << o.user_.str() << " " << o.purchase_timestamp_;
+    return os;
 }
 
 struct Order {

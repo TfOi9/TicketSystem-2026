@@ -91,10 +91,11 @@ std::optional<Train> TrainSystem::query_train(int train_id) {
 }
 
 int TrainSystem::query_station(const std::string& station_name, sjtu::vector<TrainPosition>& station_info) {
-    auto ans= station_map_.find(FixedString<40>(station_name));
+    auto ans = station_map_.find(FixedString<40>(station_name));
     if (!ans.has_value()) {
         return -1;
     }
+    station_info.clear();
     position_map_.find_all(ans.value(), station_info);
     return 0;
 }

@@ -33,6 +33,81 @@ class vector
 		data_ = new_data;
 	}
 
+	void merge_sort_impl(size_t left, size_t right, T *temp) {
+		if (right - left <= 1) {
+			return;
+		}
+		size_t mid = (left + right) >> 1;
+		merge_sort_impl(left, mid, temp);
+		merge_sort_impl(mid, right, temp);
+
+		size_t i = left;
+		size_t j = mid;
+		size_t k = left;
+		while (i < mid && j < right) {
+			if (data_[j] < data_[i]) {
+				new (&temp[k]) T(data_[j]);
+				j++;
+			} else {
+				new (&temp[k]) T(data_[i]);
+				i++;
+			}
+			k++;
+		}
+		while (i < mid) {
+			new (&temp[k]) T(data_[i]);
+			i++;
+			k++;
+		}
+		while (j < right) {
+			new (&temp[k]) T(data_[j]);
+			j++;
+			k++;
+		}
+		for (size_t p = left; p < right; ++p) {
+			data_[p] = temp[p];
+			temp[p].~T();
+		}
+	}
+
+	template<typename Compare>
+	void merge_sort_impl(size_t left, size_t right, T *temp, Compare comp) {
+		if (right - left <= 1) {
+			return;
+		}
+		size_t mid = (left + right) >> 1;
+		merge_sort_impl(left, mid, temp, comp);
+		merge_sort_impl(mid, right, temp, comp);
+
+		size_t i = left;
+		size_t j = mid;
+		size_t k = left;
+		while (i < mid && j < right) {
+			if (comp(data_[j], data_[i])) {
+				new (&temp[k]) T(data_[j]);
+				j++;
+			} else {
+				new (&temp[k]) T(data_[i]);
+				i++;
+			}
+			k++;
+		}
+		while (i < mid) {
+			new (&temp[k]) T(data_[i]);
+			i++;
+			k++;
+		}
+		while (j < right) {
+			new (&temp[k]) T(data_[j]);
+			j++;
+			k++;
+		}
+		for (size_t p = left; p < right; ++p) {
+			data_[p] = temp[p];
+			temp[p].~T();
+		}
+	}
+
 public:
 	/**
 	 * TODO
@@ -411,6 +486,79 @@ public:
 	 */
 	bool empty() const {
 		return size_ == 0;
+	}
+	void sort() {
+		if (size_ <= 1) {
+			return;
+		}
+		void *temp_buffer = operator new[](sizeof(T) * size_);
+		T *temp = static_cast<T *>(temp_buffer);
+		merge_sort_impl(0, size_, temp);
+		operator delete [](temp_buffer);
+	}
+	template<typename Compare>
+	void sort(Compare comp) {
+		if (size_ <= 1) {
+			return;
+		}
+		void *temp_buffer = operator new[](sizeof(T) * size_);
+		T *temp = static_cast<T *>(temp_buffer);
+		merge_sort_impl(0, size_, temp, comp);
+		operator delete [](temp_buffer);
+	}
+	iterator lower_bound(const T &value) {
+		size_t left = 0;
+		size_t right = size_;
+		while (left < right) {
+			size_t mid = (left + right) >> 1;
+			if (data_[mid] < value) {
+				left = mid + 1;
+			} else {
+				right = mid;
+			}
+		}
+		return iterator(data_ + left, data_, data_ + size_);
+	}
+	template<typename Compare>
+	iterator lower_bound(const T &value, Compare comp) {
+		size_t left = 0;
+		size_t right = size_;
+		while (left < right) {
+			size_t mid = (left + right) >> 1;
+			if (comp(data_[mid], value)) {
+				left = mid + 1;
+			} else {
+				right = mid;
+			}
+		}
+		return iterator(data_ + left, data_, data_ + size_);
+	}
+	iterator upper_bound(const T &value) {
+		size_t left = 0;
+		size_t right = size_;
+		while (left < right) {
+			size_t mid = (left + right) >> 1;
+			if (!(value < data_[mid])) {
+				left = mid + 1;
+			} else {
+				right = mid;
+			}
+		}
+		return iterator(data_ + left, data_, data_ + size_);
+	}
+	template<typename Compare>
+	iterator upper_bound(const T &value, Compare comp) {
+		size_t left = 0;
+		size_t right = size_;
+		while (left < right) {
+			size_t mid = (left + right) >> 1;
+			if (!comp(value, data_[mid])) {
+				left = mid + 1;
+			} else {
+				right = mid;
+			}
+		}
+		return iterator(data_ + left, data_, data_ + size_);
 	}
 	/**
 	 * returns the number of elements

@@ -1,6 +1,8 @@
 #ifndef PAGE_HPP
 #define PAGE_HPP
 
+#include <iostream>
+
 #include "../config.hpp"
 #include "../utils/comparator.hpp"
 #include "../utils/type_helper.hpp"
@@ -30,14 +32,23 @@ struct KeyPair {
 
 KEYPAIR_TEMPLATE_ARGS
 bool operator==(const KEYPAIR_TYPE& a, const KEYPAIR_TYPE& b) {
-    if constexpr (has_operator_equal_v<KeyType> && has_operator_equal_v<ValueType>) {
-        return a.key_ == b.key_ && a.val_ == b.val_;
+    bool key_equal;
+    bool val_equal;
+    if constexpr (has_operator_equal_v<KeyType>) {
+        key_equal = (a.key_ == b.key_);
     }
     else {
         Comparator<KeyType> key_comp;
-        Comparator<ValueType> val_comp;
-        return key_comp(a.key_, b.key_) == 0 && val_comp(a.val_, b.val_) == 0;
+        key_equal = (key_comp(a.key_, b.key_) == 0);
     }
+    if constexpr (has_operator_equal_v<ValueType>) {
+        val_equal = (a.val_ == b.val_);
+    }
+    else {
+        Comparator<ValueType> val_comp;
+        val_equal = (val_comp(a.val_, b.val_) == 0);
+    }
+    return key_equal && val_equal;
 }
 
 KEYPAIR_TEMPLATE_ARGS
@@ -47,33 +58,49 @@ bool operator!=(const KEYPAIR_TYPE& a, const KEYPAIR_TYPE& b) {
 
 KEYPAIR_TEMPLATE_ARGS
 bool operator>(const KEYPAIR_TYPE& a, const KEYPAIR_TYPE& b) {
-    if constexpr (has_operator_greater_v<KeyType> && has_operator_greater_v<ValueType>) {
-        if (a.key_ == b.key_) {
-            return a.val_ > b.val_;
-        }
-        return a.key_ > b.key_;
-    } else {
+    int key_cmp;
+    if constexpr (has_operator_greater_v<KeyType> && has_operator_less_v<KeyType>) {
+        if (a.key_ > b.key_) key_cmp = 1;
+        else if (a.key_ < b.key_) key_cmp = -1;
+        else key_cmp = 0;
+    }
+    else {
         Comparator<KeyType> key_comp;
+        key_cmp = key_comp(a.key_, b.key_);
+    }
+    if (key_cmp != 0) {
+        return key_cmp > 0;
+    }
+    if constexpr (has_operator_greater_v<ValueType>) {
+        return a.val_ > b.val_;
+    }
+    else {
         Comparator<ValueType> val_comp;
-        int k = key_comp(a.key_, b.key_);
-        if (k == 0) return val_comp(a.val_, b.val_) > 0;
-        return k > 0;
+        return val_comp(a.val_, b.val_) > 0;
     }
 }
 
 KEYPAIR_TEMPLATE_ARGS
 bool operator<(const KEYPAIR_TYPE& a, const KEYPAIR_TYPE& b) {
-    if constexpr (has_operator_less_v<KeyType> && has_operator_less_v<ValueType>) {
-        if (a.key_ == b.key_) {
-            return a.val_ < b.val_;
-        }
-        return a.key_ < b.key_;
-    } else {
+    int key_cmp;
+    if constexpr (has_operator_less_v<KeyType> && has_operator_greater_v<KeyType>) {
+        if (a.key_ < b.key_) key_cmp = -1;
+        else if (a.key_ > b.key_) key_cmp = 1;
+        else key_cmp = 0;
+    }
+    else {
         Comparator<KeyType> key_comp;
+        key_cmp = key_comp(a.key_, b.key_);
+    }
+    if (key_cmp != 0) {
+        return key_cmp < 0;
+    }
+    if constexpr (has_operator_less_v<ValueType>) {
+        return a.val_ < b.val_;
+    }
+    else {
         Comparator<ValueType> val_comp;
-        int k = key_comp(a.key_, b.key_);
-        if (k == 0) return val_comp(a.val_, b.val_) < 0;
-        return k < 0;
+        return val_comp(a.val_, b.val_) < 0;
     }
 }
 
@@ -121,6 +148,9 @@ struct Page {
 
 PAGE_TEMPLATE_ARGS
 int PAGE_TYPE::lower_bound(const KEYPAIR_TYPE& kp) const {
+    if (size_ == 0) {
+        return 0;
+    }
     int l = 0, r = size_ - 1, mid = -1, ans = r;
     while (l <= r) {
         mid = (l + r) / 2;
@@ -137,6 +167,9 @@ int PAGE_TYPE::lower_bound(const KEYPAIR_TYPE& kp) const {
 
 PAGE_TEMPLATE_ARGS
 int PAGE_TYPE::lower_bound(const KeyType& key) const {
+    if (size_ == 0) {
+        return 0;
+    }
     int l = 0, r = size_ - 1, mid = -1, ans = r;
     while (l <= r) {
         mid = (l + r) / 2;

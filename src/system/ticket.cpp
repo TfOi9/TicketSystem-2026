@@ -509,7 +509,111 @@ void TicketSystem::query_train() {
 }
 
 void TicketSystem::query_ticket() {
-    std::cout << "query_ticket\n";
+    // std::cout << "query_ticket\n";
+    if (!verify_station_name(cmd_->arg('s')) || !verify_station_name(cmd_->arg('t'))) {
+        std::cerr << "bad station name\n";
+        std::cout << "-1\n";
+        return;
+    }
+    if (cmd_->arg('s') == cmd_->arg('t')) {
+        std::cerr << "same station\n";
+        std::cout << "-1\n";
+        return;
+    }
+    date d;
+    try {
+        d = parse_date(cmd_->arg('d'));
+    }
+    catch(...) {
+        std::cerr << "bad date syntax\n";
+        std::cout << "-1\n";
+        return;
+    }
+    if (d.month_ < 6 || d.month_ > 10 || d.month_ == 9 && d.day_ > 3) {
+        std::cerr << "no train at date\n";
+        std::cout << "-1\n";
+        return;
+    }
+    if (!cmd_->arg('p').empty() && cmd_->arg('p') != "time" && cmd_->arg('p') != "cost") {
+        std::cerr << "bad sorting protocol\n";
+        std::cout << "-1\n";
+        return;
+    }
+    sjtu::vector<TrainPosition> start_trains, end_trains;
+    int start_query = train_.query_station(cmd_->arg('s'), start_trains);
+    int end_query = train_.query_station(cmd_->arg('t'), end_trains);
+    if (start_query || end_query) {
+        std::cerr << "bad query\n";
+        std::cout << "-1\n";
+        return;
+    }
+    start_trains.sort(TrainPositionCompare());
+    end_trains.sort(TrainPositionCompare());
+    int start_ptr = 0, end_ptr = 0;
+    int d_val = int(d);
+    sjtu::vector<Ticket> tickets;
+    while (start_ptr < start_trains.size()) {
+        while (end_ptr < end_trains.size() && end_trains[end_ptr].train_id_ < start_trains[start_ptr].train_id_) {
+            end_ptr++;
+        }
+        if (end_ptr < end_trains.size() && end_trains[end_ptr].train_id_ == start_trains[start_ptr].train_id_ &&
+            start_trains[start_ptr].pos_ < end_trains[end_ptr].pos_) {
+            int train_id = start_trains[start_ptr].train_id_, 
+                spos = start_trains[start_ptr].pos_, 
+                epos = end_trains[end_ptr].pos_;
+            Train train = train_.query_train(train_id).value();
+            date first_date = train.startSaleDate_ + train.arrivalTimes_[spos].day_offset_;
+            date last_date = train.endSaleDate_ + train.arrivalTimes_[spos].day_offset_;
+            if (d_val >= int(first_date) && d_val <= int(last_date)) {
+                int depart = d_val - train.arrivalTimes_[spos].day_offset_;
+                bool has_ticket = true;
+                int min_seats = train.seatNum_;
+                for (int i = spos; i < epos; i++) {
+                    if (!train.seats_[depart][i]) {
+                        has_ticket = false;
+                        break;
+                    }
+                    if (train.seats_[depart][i] < min_seats) {
+                        min_seats = train.seats_[depart][i];
+                    }
+                }
+                if (has_ticket) {
+                    Ticket ticket;
+                    ticket.train_id_ = train.trainID_;
+                    ticket.start_station_ = train.stations_[spos];
+                    ticket.end_station_ = train.stations_[epos];
+                    ticket.departure_date_ = d_val;
+                    ticket.arrival_date_ = d_val + train.arrivalTimes_[epos].day_offset_ - train.arrivalTimes_[spos].day_offset_;
+                    ticket.departure_time_ = train.arrivalTimes_[spos] + train.stopoverTimes_[spos];
+                    ticket.arrival_time_ = train.arrivalTimes_[epos];
+                    ticket.duration_ = int(ticket.arrival_time_) - int(ticket.departure_time_);
+                    int price = 0;
+                    for (int i = spos; i < epos; i++) {
+                        price += train.prices_[i];
+                    }
+                    ticket.price_ = price;
+                    ticket.seat_ = min_seats;
+                    tickets.push_back(ticket);
+                }
+            }
+        }
+        start_ptr++;
+    }
+    if (cmd_->arg('p') == "cost") {
+        tickets.sort(TicketPriceCompare());
+    }
+    else {
+        tickets.sort(TicketDurationCompare());
+    }
+    std::cout << tickets.size() << "\n";
+    for (int i = 0; i < tickets.size(); i++) {
+        Ticket& ticket = tickets[i];
+        std::cout << ticket.train_id_ << " " << cmd_->arg('s') << " ";
+        print_time_date(ticket.departure_date_, ticket.departure_time_, std::cout);
+        std::cout << " -> " << cmd_->arg('t') << " ";
+        print_time_date(ticket.arrival_date_, ticket.arrival_time_, std::cout);
+        std::cout << " " << ticket.price_ << " " << ticket.seat_ << "\n";
+    }
 }
 
 void TicketSystem::query_transfer() {
