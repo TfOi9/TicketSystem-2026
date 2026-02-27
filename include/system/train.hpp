@@ -60,9 +60,9 @@ public:
 
     int release_train(const std::string& train_name);
 
-    Train query_train(const std::string& train_name);
+    std::optional<Train> query_train(const std::string& train_name);
 
-    Train query_train(int train_id);
+    std::optional<Train> query_train(int train_id);
 
     int query_station(const std::string& station_name, sjtu::vector<TrainPosition>& station_info);
 

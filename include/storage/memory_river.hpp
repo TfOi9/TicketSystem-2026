@@ -21,7 +21,9 @@ private:
 public:
     MemoryRiver() : size_(1) {}
 
-    MemoryRiver(const string& file_name) : file_name(file_name), size_(1) {}
+    MemoryRiver(const string& file_name) : file_name(file_name), size_(1) {
+        initialise(file_name);
+    }
 
     ~MemoryRiver() {
         write_info(size_, 1);

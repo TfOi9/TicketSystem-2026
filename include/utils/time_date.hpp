@@ -1,8 +1,10 @@
 #ifndef TIME_DATE_HPP
 #define TIME_DATE_HPP
 
+#include <stdexcept>
 #include <string>
 #include <exception>
+#include <iostream>
 
 namespace sjtu {
 
@@ -32,7 +34,31 @@ struct date {
     int month_;
     int day_;
 
-    date(int month = 1, int day = 1) : month_(month), day_(day) {}
+    date() {}
+
+    date(int month, int day) : month_(month), day_(day) {}
+
+    date(int d) {
+        if (d >= 0 && d <= 29) {
+            month_ = 6;
+            day_ = d + 1;
+        }
+        else if (d > 29 && d <= 60) {
+            month_ = 7;
+            day_ = d - 29;
+        }
+        else if (d > 60 && d <= 91) {
+            month_ = 8;
+            day_ = d - 60;
+        }
+        else if (d > 91 && d <= 121) {
+            month_ = 9;
+            day_ = d - 91;
+        }
+        else {
+            throw std::invalid_argument("Invalid day number");
+        }
+    }
 
     explicit operator int() const {
         switch (month_) {
@@ -42,15 +68,24 @@ struct date {
                 return day_ + 29;
             case 8:
                 return day_ + 60;
+            case 9:
+                return day_ + 91;
             default:
                 return -1;
         }
     }
+
+    date operator+(int d) const {
+        return date(int(*this) + d);
+    }
+
 };
 
 time parse_time(const std::string& str);
 
 date parse_date(const std::string& str);
+
+void print_time_date(const date& d, const time& t, std::ostream& os);
 
 } // namespace sjtu
 

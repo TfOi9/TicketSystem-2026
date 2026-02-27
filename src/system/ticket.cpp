@@ -408,6 +408,12 @@ void TicketSystem::add_train() {
         std::cout << "-1\n";
         return;
     }
+    if (train.startSaleDate_.month_ < 6 || train.startSaleDate_.month_ > 8 ||
+            train.endSaleDate_.month_ < 6 || train.endSaleDate_.month_ > 8) {
+        std::cerr << "bad month\n";
+        std::cout << "-1\n";
+        return;
+    }
     std::string y = cmd_->arg('y');
     if (y.size() != 1 || y[0] < 'A' || y[0] > 'Z') {
         std::cerr << "bad type\n";
@@ -430,15 +436,76 @@ void TicketSystem::add_train() {
 }
 
 void TicketSystem::delete_train() {
-    std::cout << "delete_train\n";
+    // std::cout << "delete_train\n";
+    if (!verify_train_name(cmd_->arg('i'))) {
+        std::cout << "-1\n";
+        return;
+    }
+    int ret = train_.delete_train(cmd_->arg('i'));
+    std::cout << ret << "\n";
 }
 
 void TicketSystem::release_train() {
-    std::cout << "release_train\n";
+    // std::cout << "release_train\n";
+    if (!verify_train_name(cmd_->arg('i'))) {
+        std::cout << "-1\n";
+        return;
+    }
+    int ret = train_.release_train(cmd_->arg('i'));
+    std::cout << ret << "\n";
 }
 
 void TicketSystem::query_train() {
-    std::cout << "query_train\n";
+    // std::cout << "query_train\n";
+    if (!verify_train_name(cmd_->arg('i'))) {
+        std::cerr << "bad train name\n";
+        std::cout << "-1\n";
+        return;
+    }
+    date d;
+    try {
+        d = parse_date(cmd_->arg('d'));
+    }
+    catch(...) {
+        std::cerr << "bad date syntax\n";
+        std::cout << "-1\n";
+        return;
+    }
+    if (d.month_ < 6 || d.month_ > 8) {
+        std::cerr << "bad month\n";
+        std::cout << "-1\n";
+        return;
+    }
+    auto res = train_.query_train(cmd_->arg('i'));
+    if (!res.has_value()) {
+        std::cerr << "train not found\n";
+        std::cout << "-1\n";
+        return;
+    }
+    Train train = res.value();
+    if (int(d) < int(train.startSaleDate_) || int(d) > int(train.endSaleDate_)) {
+        std::cerr << "no train at that date\n";
+        std::cout << "-1\n";
+        return;
+    }
+    std::cout << train.trainID_.str() << " " << train.type_ << "\n";
+    int price = 0;
+    for (int i = 0; i < train.stationNum_; i++) {
+        std::string station_name = train_.station_name(train.stations_[i]);
+        time arrival_time = train.arrivalTimes_[i];
+        time leaving_time = train.arrivalTimes_[i] + train.stopoverTimes_[i];
+        std::cout << station_name << " ";
+        if (i) print_time_date(d, arrival_time, std::cout);
+        else std::cout << "xx-xx xx:xx";
+        std::cout << " -> ";
+        if (i < train.stationNum_ - 1) print_time_date(d, leaving_time, std::cout);
+        else std::cout << "xx-xx xx:xx";
+        std::cout << " " << price << " ";
+        if (i < train.stationNum_ - 1) std::cout << train.seats_[int(d)][i];
+        else std::cout << "x";
+        std::cout << "\n";
+        price += train.prices_[i];
+    }
 }
 
 void TicketSystem::query_ticket() {

@@ -1,4 +1,5 @@
 #include "../../include/system/train.hpp"
+#include <optional>
 
 namespace sjtu {
 int TrainSystem::train_id(const std::string& train_name) {
@@ -70,18 +71,21 @@ int TrainSystem::release_train(const std::string &train_name) {
     return 0;
 }
 
-Train TrainSystem::query_train(const std::string& train_name) {
+std::optional<Train> TrainSystem::query_train(const std::string& train_name) {
     auto ans = train_map_.find(FixedString<20>(train_name));
     if (!ans.has_value()) {
-        return Train();
+        return std::nullopt;
     }
     Train train;
     trains_.read(train, ans.value());
     return train;
 }
 
-Train TrainSystem::query_train(int train_id) {
+std::optional<Train> TrainSystem::query_train(int train_id) {
     Train train;
+    if (trains_.size() <= train_id) {
+        return std::nullopt;
+    }
     trains_.read(train, train_id);
     return train;
 }
