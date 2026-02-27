@@ -31,6 +31,7 @@ struct Train {
 
 struct TrainStringifier {
     char *operator()(Train& t, int& len) const {
+        len = 60 + t.stationNum_ * 396;
         char *data = new char[60 + t.stationNum_ * 396];
         memcpy(data, reinterpret_cast<char *>(&(t.stationNum_)), 4);
         for (int i = 0; i < 20; i++) {
@@ -85,6 +86,12 @@ struct TrainAntiStringifier {
     }
 };
 
+struct TrainSizeCalculator {
+    int operator()(int size) const {
+        return 60 + size * 396;
+    }
+};
+
 struct TrainPosition {
     int train_id_;
     int pos_;
@@ -116,8 +123,8 @@ struct TrainPositionCompare {
 
 class TrainSystem {
 private:
-    MemoryRiver<Train> trains_;
-    
+    // MemoryRiver<Train> trains_;
+    DynamicRiver<Train, TrainStringifier, TrainAntiStringifier, TrainSizeCalculator> trains_;
     MemoryRiver<FixedString<40>> stations_;
     BPlusTree<FixedString<20>, int> train_map_;
     BPlusTree<FixedString<40>, int> station_map_;
@@ -144,7 +151,7 @@ public:
 
     std::optional<Train> query_train(const std::string& train_name);
 
-    std::optional<Train> query_train(int train_id);
+    Train query_train(int train_id);
 
     int query_station(const std::string& station_name, sjtu::vector<TrainPosition>& station_info);
 

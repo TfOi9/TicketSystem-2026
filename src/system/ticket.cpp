@@ -561,7 +561,7 @@ void TicketSystem::query_ticket() {
             int train_id = start_trains[start_ptr].train_id_, 
                 spos = start_trains[start_ptr].pos_, 
                 epos = end_trains[end_ptr].pos_;
-            Train train = train_.query_train(train_id).value();
+            Train train = train_.query_train(train_id);
             date first_date = train.startSaleDate_ + train.arrivalTimes_[spos].day_offset_;
             date last_date = train.endSaleDate_ + train.arrivalTimes_[spos].day_offset_;
             if (d_val >= int(first_date) && d_val <= int(last_date)) {

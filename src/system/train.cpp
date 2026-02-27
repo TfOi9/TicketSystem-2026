@@ -83,11 +83,8 @@ std::optional<Train> TrainSystem::query_train(const std::string& train_name) {
     return train;
 }
 
-std::optional<Train> TrainSystem::query_train(int train_id) {
+Train TrainSystem::query_train(int train_id) {
     Train train;
-    if (trains_.size() <= train_id) {
-        return std::nullopt;
-    }
     trains_.read(train, train_id);
     return train;
 }

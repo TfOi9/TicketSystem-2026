@@ -8,13 +8,14 @@
 #include "../config.hpp"
 
 namespace sjtu {
-template<typename T, typename Stringifier, typename AntiStringifier>
+template<typename T, typename Stringifier, typename AntiStringifier, typename SizeCalculator>
 class DynamicRiver {
 private:
     std::fstream file;
     std::string file_name;
     Stringifier str_;
     AntiStringifier astr_;
+    SizeCalculator calc_;
 
     bool open_file() {
         file.open(file_name, std::ios::in | std::ios::out | std::ios::binary);
@@ -50,7 +51,7 @@ public:
         file.open(file_name, std::ios::in | std::ios::out | std::ios::binary);
     }
 
-    diskpos_t write(const T& t) {
+    diskpos_t write(T& t) {
         int len = 0;
         char *data = str_(t, len);
         file.seekp(0, std::ios::end);
@@ -60,7 +61,7 @@ public:
         return pos;
     }
 
-    void update(const T& t, diskpos_t pos) {
+    void update(T& t, diskpos_t pos) {
         int len = 0;
         char *data = str_(t, len);
         file.seekp(pos);
@@ -69,10 +70,11 @@ public:
     }
 
     void read(T& t, diskpos_t pos) {
-        int len = 0;
-        char *data = new char[len];
+        int siz = 0;
         file.seekg(pos);
-        file.read(reinterpret_cast<char *>(&len), 4);
+        file.read(reinterpret_cast<char *>(&siz), 4);
+        int len = calc_(siz);
+        char *data = new char[len];
         file.seekg(pos);
         file.read(data, len);
         t = astr_(data);
