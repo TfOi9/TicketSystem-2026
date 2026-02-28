@@ -580,9 +580,13 @@ void TicketSystem::query_ticket() {
                 if (has_ticket) {
                     Ticket ticket;
                     ticket.train_id_ = train.trainID_;
+                    // std::cerr << train.trainID_ << std::endl;
                     ticket.start_station_ = train.stations_[spos];
                     ticket.end_station_ = train.stations_[epos];
                     ticket.departure_date_ = d_val;
+                    // std::cerr << train.arrivalTimes_[spos].day_offset_ << std::endl;
+                    // std::cerr << d_val << " " << depart << std::endl;
+                    // std::cerr << date(d_val).month_ << " " << date(d_val).day_ << std::endl;
                     ticket.arrival_date_ = d_val + train.arrivalTimes_[epos].day_offset_ - train.arrivalTimes_[spos].day_offset_;
                     ticket.departure_time_ = train.arrivalTimes_[spos] + train.stopoverTimes_[spos];
                     ticket.arrival_time_ = train.arrivalTimes_[epos];
@@ -609,15 +613,186 @@ void TicketSystem::query_ticket() {
     for (int i = 0; i < tickets.size(); i++) {
         Ticket& ticket = tickets[i];
         std::cout << ticket.train_id_ << " " << cmd_->arg('s') << " ";
-        print_time_date(ticket.departure_date_, ticket.departure_time_, std::cout);
+        print_time_date(ticket.departure_date_, ticket.departure_time_, std::cout, true);
         std::cout << " -> " << cmd_->arg('t') << " ";
-        print_time_date(ticket.arrival_date_, ticket.arrival_time_, std::cout);
+        print_time_date(ticket.arrival_date_, ticket.arrival_time_, std::cout, true);
         std::cout << " " << ticket.price_ << " " << ticket.seat_ << "\n";
     }
 }
 
 void TicketSystem::query_transfer() {
-    std::cout << "query_transfer\n";
+    // std::cout << "query_transfer\n";
+    if (!verify_station_name(cmd_->arg('s')) || !verify_station_name(cmd_->arg('t'))) {
+        std::cerr << "bad station name\n";
+        std::cout << "-1\n";
+        return;
+    }
+    if (cmd_->arg('s') == cmd_->arg('t')) {
+        std::cerr << "same station\n";
+        std::cout << "-1\n";
+        return;
+    }
+    date d;
+    try {
+        d = parse_date(cmd_->arg('d'));
+    }
+    catch(...) {
+        std::cerr << "bad date syntax\n";
+        std::cout << "-1\n";
+        return;
+    }
+    if (d.month_ < 6 || d.month_ > 10 || d.month_ == 9 && d.day_ > 3) {
+        std::cerr << "no train at date\n";
+        std::cout << "-1\n";
+        return;
+    }
+    if (!cmd_->arg('p').empty() && cmd_->arg('p') != "time" && cmd_->arg('p') != "cost") {
+        std::cerr << "bad sorting protocol\n";
+        std::cout << "-1\n";
+        return;
+    }
+    sjtu::vector<TrainPosition> start_trains, end_trains;
+    int start_query = train_.query_station(cmd_->arg('s'), start_trains);
+    int end_query = train_.query_station(cmd_->arg('t'), end_trains);
+    int start_station = train_.station_id(cmd_->arg('s'));
+    int end_station = train_.station_id(cmd_->arg('t'));
+    if (start_query || end_query) {
+        std::cerr << "bad query\n";
+        std::cout << "-1\n";
+        return;
+    }
+    int d_val = int(d);
+    sjtu::vector<Ticket> candidate_tickets;
+    for (int i = 0; i < start_trains.size(); i++) {
+        Train train = train_.query_train(start_trains[i].train_id_);
+        int start_pos = start_trains[i].pos_;
+        date first_date = train.startSaleDate_ + train.arrivalTimes_[start_pos].day_offset_;
+        date last_date = train.endSaleDate_ + train.arrivalTimes_[start_pos].day_offset_;
+        if (d_val < int(first_date) || d_val > int(last_date)) {
+            continue;
+        }
+        int price = 0;
+        int min_seats = train.seatNum_;
+        int departure_d = d_val - train.arrivalTimes_[start_pos].day_offset_;
+        for (int j = start_pos + 1; j < train.stationNum_; j++) {
+            price += train.prices_[j - 1];
+            int cur_seat = train.seats_[departure_d][j - 1];
+            if (cur_seat < min_seats) {
+                min_seats = cur_seat;
+            }
+            if (min_seats == 0) {
+                break;
+            }
+            if (train.stations_[j] == end_station) {
+                continue;
+            }
+            Ticket ticket;
+            ticket.train_id_ = train.trainID_;
+            ticket.start_station_ = start_station;
+            ticket.end_station_ = train.stations_[j];
+            ticket.departure_date_ = date(d_val);
+            ticket.departure_time_ = train.arrivalTimes_[start_pos] + train.stopoverTimes_[start_pos];
+            ticket.arrival_date_ = date(d_val + train.arrivalTimes_[j].day_offset_ - train.arrivalTimes_[start_pos].day_offset_);
+            ticket.arrival_time_ = train.arrivalTimes_[j];
+            ticket.duration_ = int(ticket.arrival_time_) - int(ticket.departure_time_);
+            ticket.price_ = price;
+            ticket.seat_ = min_seats;
+            candidate_tickets.push_back(ticket);
+        }
+    }
+    candidate_tickets.sort(TicketEndStationCompare());
+    // std::cerr << candidate_tickets.size() << std::endl;
+    sjtu::vector<TransferTicket> tickets;
+    for (int i = 0; i < end_trains.size(); i++) {
+        Train train = train_.query_train(end_trains[i].train_id_);
+        int price = 0;
+        for (int j = end_trains[i].pos_ - 1; j >= 0; j--) {
+            price += train.prices_[j];
+            Ticket t{};
+            t.end_station_ = train.stations_[j];
+            time real_departure_time = train.arrivalTimes_[j] + (j ? train.stopoverTimes_[j] : 0);
+            time departure_time = real_departure_time;
+            departure_time.day_offset_ = 0;
+            auto it = candidate_tickets.lower_bound(t, TicketEndStationCompare());
+            while (it != candidate_tickets.end() && (*it).end_station_ == train.stations_[j]) {
+                if ((*it).train_id_ == train.trainID_) {
+                    it++;
+                    continue;
+                }
+                time last_arrival_time = (*it).arrival_time_;
+                last_arrival_time.day_offset_ = 0;
+                int last_arrival_date = int((*it).arrival_date_);
+                int departure_date;
+                if (int(last_arrival_time) < int(departure_time)) {
+                    departure_date = last_arrival_date;
+                }
+                else {
+                    departure_date = last_arrival_date + 1;
+                }
+                int second_train_depart_date = departure_date - (train.arrivalTimes_[j] + train.stopoverTimes_[j]).day_offset_;
+                if (second_train_depart_date < int(train.startSaleDate_)
+                    || second_train_depart_date > int(train.endSaleDate_)) {
+                    // std::cerr << train.trainID_ << " " << second_train_depart_date << std::endl;
+                    it++;
+                    continue;
+                }
+                int min_seats = train.seatNum_;
+                for (int k = j; k < end_trains[i].pos_; k++) {
+                    int cur_seat = train.seats_[second_train_depart_date][k];
+                    if (cur_seat < min_seats) {
+                        min_seats = cur_seat;
+                    }
+                }
+                if (min_seats == 0) {
+                    it++;
+                    continue;
+                }
+                Ticket ticket;
+                ticket.train_id_ = train.trainID_;
+                ticket.start_station_ = train.stations_[j];
+                ticket.end_station_ = end_station;
+                ticket.departure_date_ = date(departure_date);
+                ticket.departure_time_ = real_departure_time;
+                ticket.arrival_date_ = date(departure_date + train.arrivalTimes_[end_trains[i].pos_].day_offset_
+                    - train.arrivalTimes_[j].day_offset_);
+                ticket.arrival_time_ = train.arrivalTimes_[end_trains[i].pos_];
+                ticket.duration_ = int(ticket.arrival_time_) - int(ticket.departure_time_);
+                ticket.price_ = price;
+                ticket.seat_ = min_seats;
+                TransferTicket transfer_ticket;
+                transfer_ticket.first_ticket_ = *it;
+                transfer_ticket.second_ticket_ = ticket;
+                tickets.push_back(transfer_ticket);
+                it++;
+            }
+        }
+    }
+    if (tickets.empty()) {
+        std::cout << "0\n";
+        return;
+    }
+    bool by_cost = (cmd_->arg('p') == "cost");
+    if (by_cost) {
+        tickets.sort(TransferTicketPriceCompare());
+    }
+    else {
+        tickets.sort(TransferTicketDurationCompare());
+    }
+    auto print_ticket = [&](std::ostream& os, const Ticket& ticket) {
+        os << ticket.train_id_ << " " << train_.station_name(ticket.start_station_) << " ";
+        print_time_date(ticket.departure_date_, ticket.departure_time_, os, true);
+        os << " -> " << train_.station_name(ticket.end_station_) << " ";
+        print_time_date(ticket.arrival_date_, ticket.arrival_time_, os, true);
+        os << " " << ticket.price_ << " " << ticket.seat_ << "\n";
+    };
+    // for (int i = 0; i < tickets.size(); i++) {
+    //     std::cerr << "[transfer_sorted " << i << "] ";
+    //     print_ticket(std::cerr, tickets[i].first_ticket_);
+    //     std::cerr << "[transfer_sorted " << i << "] ";
+    //     print_ticket(std::cerr, tickets[i].second_ticket_);
+    // }
+    print_ticket(std::cout, tickets[0].first_ticket_);
+    print_ticket(std::cout, tickets[0].second_ticket_);
 }
 
 void TicketSystem::buy_ticket() {

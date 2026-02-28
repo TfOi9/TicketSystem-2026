@@ -90,7 +90,7 @@ time parse_time(const std::string& str);
 
 date parse_date(const std::string& str);
 
-void print_time_date(const date& d, const time& t, std::ostream& os);
+void print_time_date(const date& d, const time& t, std::ostream& os, bool discard_offset = false);
 
 } // namespace sjtu
 

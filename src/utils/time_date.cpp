@@ -41,8 +41,8 @@ date parse_date(const std::string &str) {
     return date(m, d);
 }
 
-void print_time_date(const date& d, const time& t, std::ostream& os) {
-    date p = d + t.day_offset_;
+void print_time_date(const date& d, const time& t, std::ostream& os, bool discard_offset) {
+    date p = d + (discard_offset ? 0 : t.day_offset_);
     os << ((p.month_ < 10) ? "0" : "") << p.month_ << "-" << ((p.day_ < 10) ? "0" : "") << p.day_
         << " " << ((t.hr_ < 10) ? "0" : "") << t.hr_ << ":" << ((t.min_ < 10) ? "0" : "") << t.min_;
 }

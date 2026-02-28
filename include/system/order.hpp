@@ -21,6 +21,12 @@ struct Ticket {
     int seat_;
 };
 
+struct TicketTrainIDCompare {
+    bool operator()(const Ticket& a, const Ticket& b) const {
+        return a.train_id_ < b.train_id_;
+    }
+};
+
 struct TicketDurationCompare {
     bool operator()(const Ticket& a, const Ticket& b) const {
         if (a.duration_ == b.duration_) {
@@ -36,6 +42,15 @@ struct TicketPriceCompare {
             return a.train_id_ < b.train_id_;
         }
         return a.price_ < b.price_;
+    }
+};
+
+struct TicketEndStationCompare {
+    bool operator()(const Ticket& a, const Ticket& b) const {
+        if (a.end_station_ == b.end_station_) {
+            return a.train_id_ < b.train_id_;
+        }
+        return a.end_station_ < b.end_station_;
     }
 };
 
@@ -80,6 +95,49 @@ struct Order {
 struct TransferTicket {
     Ticket first_ticket_;
     Ticket second_ticket_;
+
+    int price() const {
+        return first_ticket_.price_ + second_ticket_.price_;
+    }
+
+    int duration() const {
+        int arrival = int(second_ticket_.arrival_date_) * 1440 + second_ticket_.arrival_time_.hr_ * 60 + second_ticket_.arrival_time_.min_;
+        int departure = int(first_ticket_.departure_date_) * 1440 + first_ticket_.departure_time_.hr_ * 60 +first_ticket_.departure_time_.min_;
+        return arrival - departure;
+    }
+
+};
+
+struct TransferTicketPriceCompare {
+    bool operator()(const TransferTicket& a, const TransferTicket& b) const {
+        int ap = a.price(), bp = b.price(), ad = a.duration(), bd = b.duration();
+        if (ap == bp) {
+            if (ad == bd) {
+                if (a.first_ticket_.train_id_ == b.first_ticket_.train_id_) {
+                    return a.second_ticket_.train_id_ < b.second_ticket_.train_id_;
+                }
+                return a.first_ticket_.train_id_ < b.first_ticket_.train_id_;
+            }
+            return ad < bd;
+        }
+        return ap < bp;
+    }
+};
+
+struct TransferTicketDurationCompare {
+    bool operator()(const TransferTicket& a, const TransferTicket& b) const {
+        int ap = a.price(), bp = b.price(), ad = a.duration(), bd = b.duration();
+        if (ad == bd) {
+            if (ap == bp) {
+                if (a.first_ticket_.train_id_ == b.first_ticket_.train_id_) {
+                    return a.second_ticket_.train_id_ < b.second_ticket_.train_id_;
+                }
+                return a.first_ticket_.train_id_ < b.first_ticket_.train_id_;
+            }
+            return ap < bp;
+        }
+        return ad < bd;
+    }
 };
 
 class OrderSystem {
