@@ -45,6 +45,13 @@ int UserSystem::logout(const std::string &username) {
     return 0;
 }
 
+bool UserSystem::logged_in(const std::string &username) {
+    if (user_map_.find(FixedString<20>(username)) == std::nullopt) {
+        return false;
+    }
+    return (login_list_.find(FixedString<20>(username)) != login_list_.end());
+}
+
 std::optional<User> UserSystem::query_profile(const std::string &cur_username, const std::string &username) {
     auto it = login_list_.find(FixedString<20>(cur_username));
     if (it == login_list_.end()) {

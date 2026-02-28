@@ -173,6 +173,9 @@ void TicketSystem::run(const volatile std::sig_atomic_t* signal_status) {
                 break;
             }
         }
+        else {
+            std::cout << "-1\n";
+        }
     }
 }
 
@@ -529,7 +532,7 @@ void TicketSystem::query_ticket() {
         std::cout << "-1\n";
         return;
     }
-    if (d.month_ < 6 || d.month_ > 10 || d.month_ == 9 && d.day_ > 3) {
+    if (d.month_ < 6 || d.month_ > 9 || d.month_ == 9 && d.day_ > 3) {
         std::cerr << "no train at date\n";
         std::cout << "-1\n";
         return;
@@ -562,43 +565,38 @@ void TicketSystem::query_ticket() {
                 spos = start_trains[start_ptr].pos_, 
                 epos = end_trains[end_ptr].pos_;
             Train train = train_.query_train(train_id);
-            date first_date = train.startSaleDate_ + train.arrivalTimes_[spos].day_offset_;
-            date last_date = train.endSaleDate_ + train.arrivalTimes_[spos].day_offset_;
+            date first_date = train.startSaleDate_ + (train.arrivalTimes_[spos] + train.stopoverTimes_[spos]).day_offset_;
+            date last_date = train.endSaleDate_ + (train.arrivalTimes_[spos] + train.stopoverTimes_[spos]).day_offset_;
             if (d_val >= int(first_date) && d_val <= int(last_date)) {
-                int depart = d_val - train.arrivalTimes_[spos].day_offset_;
-                bool has_ticket = true;
+                int depart = d_val - (train.arrivalTimes_[spos] + train.stopoverTimes_[spos]).day_offset_;
                 int min_seats = train.seatNum_;
                 for (int i = spos; i < epos; i++) {
-                    if (!train.seats_[depart][i]) {
-                        has_ticket = false;
-                        break;
-                    }
                     if (train.seats_[depart][i] < min_seats) {
                         min_seats = train.seats_[depart][i];
                     }
                 }
-                if (has_ticket) {
-                    Ticket ticket;
-                    ticket.train_id_ = train.trainID_;
-                    // std::cerr << train.trainID_ << std::endl;
-                    ticket.start_station_ = train.stations_[spos];
-                    ticket.end_station_ = train.stations_[epos];
-                    ticket.departure_date_ = d_val;
-                    // std::cerr << train.arrivalTimes_[spos].day_offset_ << std::endl;
-                    // std::cerr << d_val << " " << depart << std::endl;
-                    // std::cerr << date(d_val).month_ << " " << date(d_val).day_ << std::endl;
-                    ticket.arrival_date_ = d_val + train.arrivalTimes_[epos].day_offset_ - train.arrivalTimes_[spos].day_offset_;
-                    ticket.departure_time_ = train.arrivalTimes_[spos] + train.stopoverTimes_[spos];
-                    ticket.arrival_time_ = train.arrivalTimes_[epos];
-                    ticket.duration_ = int(ticket.arrival_time_) - int(ticket.departure_time_);
-                    int price = 0;
-                    for (int i = spos; i < epos; i++) {
-                        price += train.prices_[i];
-                    }
-                    ticket.price_ = price;
-                    ticket.seat_ = min_seats;
-                    tickets.push_back(ticket);
+                Ticket ticket;
+                ticket.train_id_ = train.trainID_;
+                // std::cerr << train.trainID_ << std::endl;
+                ticket.start_station_ = train.stations_[spos];
+                ticket.end_station_ = train.stations_[epos];
+                ticket.departure_date_ = d_val;
+                // std::cerr << train.arrivalTimes_[spos].day_offset_ << std::endl;
+                // std::cerr << d_val << " " << depart << std::endl;
+                // std::cerr << date(d_val).month_ << " " << date(d_val).day_ << std::endl;
+                ticket.arrival_date_ = d_val
+                    + train.arrivalTimes_[epos].day_offset_
+                    - (train.arrivalTimes_[spos] + train.stopoverTimes_[spos]).day_offset_;
+                ticket.departure_time_ = train.arrivalTimes_[spos] + train.stopoverTimes_[spos];
+                ticket.arrival_time_ = train.arrivalTimes_[epos];
+                ticket.duration_ = int(ticket.arrival_time_) - int(ticket.departure_time_);
+                int price = 0;
+                for (int i = spos; i < epos; i++) {
+                    price += train.prices_[i];
                 }
+                ticket.price_ = price;
+                ticket.seat_ = min_seats;
+                tickets.push_back(ticket);
             }
         }
         start_ptr++;
@@ -641,7 +639,7 @@ void TicketSystem::query_transfer() {
         std::cout << "-1\n";
         return;
     }
-    if (d.month_ < 6 || d.month_ > 10 || d.month_ == 9 && d.day_ > 3) {
+    if (d.month_ < 6 || d.month_ > 9 || d.month_ == 9 && d.day_ > 3) {
         std::cerr << "no train at date\n";
         std::cout << "-1\n";
         return;
@@ -666,22 +664,19 @@ void TicketSystem::query_transfer() {
     for (int i = 0; i < start_trains.size(); i++) {
         Train train = train_.query_train(start_trains[i].train_id_);
         int start_pos = start_trains[i].pos_;
-        date first_date = train.startSaleDate_ + train.arrivalTimes_[start_pos].day_offset_;
-        date last_date = train.endSaleDate_ + train.arrivalTimes_[start_pos].day_offset_;
+        date first_date = train.startSaleDate_ + (train.arrivalTimes_[start_pos] + train.stopoverTimes_[start_pos]).day_offset_;
+        date last_date = train.endSaleDate_ + (train.arrivalTimes_[start_pos] + train.stopoverTimes_[start_pos]).day_offset_;
         if (d_val < int(first_date) || d_val > int(last_date)) {
             continue;
         }
         int price = 0;
         int min_seats = train.seatNum_;
-        int departure_d = d_val - train.arrivalTimes_[start_pos].day_offset_;
+        int departure_d = d_val - (train.arrivalTimes_[start_pos] + train.stopoverTimes_[start_pos]).day_offset_;
         for (int j = start_pos + 1; j < train.stationNum_; j++) {
             price += train.prices_[j - 1];
             int cur_seat = train.seats_[departure_d][j - 1];
             if (cur_seat < min_seats) {
                 min_seats = cur_seat;
-            }
-            if (min_seats == 0) {
-                break;
             }
             if (train.stations_[j] == end_station) {
                 continue;
@@ -692,7 +687,9 @@ void TicketSystem::query_transfer() {
             ticket.end_station_ = train.stations_[j];
             ticket.departure_date_ = date(d_val);
             ticket.departure_time_ = train.arrivalTimes_[start_pos] + train.stopoverTimes_[start_pos];
-            ticket.arrival_date_ = date(d_val + train.arrivalTimes_[j].day_offset_ - train.arrivalTimes_[start_pos].day_offset_);
+            ticket.arrival_date_ = date(d_val
+                + train.arrivalTimes_[j].day_offset_
+                - (train.arrivalTimes_[start_pos] + train.stopoverTimes_[start_pos]).day_offset_);
             ticket.arrival_time_ = train.arrivalTimes_[j];
             ticket.duration_ = int(ticket.arrival_time_) - int(ticket.departure_time_);
             ticket.price_ = price;
@@ -743,18 +740,15 @@ void TicketSystem::query_transfer() {
                         min_seats = cur_seat;
                     }
                 }
-                if (min_seats == 0) {
-                    it++;
-                    continue;
-                }
                 Ticket ticket;
                 ticket.train_id_ = train.trainID_;
                 ticket.start_station_ = train.stations_[j];
                 ticket.end_station_ = end_station;
                 ticket.departure_date_ = date(departure_date);
                 ticket.departure_time_ = real_departure_time;
-                ticket.arrival_date_ = date(departure_date + train.arrivalTimes_[end_trains[i].pos_].day_offset_
-                    - train.arrivalTimes_[j].day_offset_);
+                ticket.arrival_date_ = date(departure_date
+                    + train.arrivalTimes_[end_trains[i].pos_].day_offset_
+                    - (train.arrivalTimes_[j] + train.stopoverTimes_[j]).day_offset_);
                 ticket.arrival_time_ = train.arrivalTimes_[end_trains[i].pos_];
                 ticket.duration_ = int(ticket.arrival_time_) - int(ticket.departure_time_);
                 ticket.price_ = price;
@@ -796,7 +790,148 @@ void TicketSystem::query_transfer() {
 }
 
 void TicketSystem::buy_ticket() {
-    std::cout << "buy_ticket\n";
+    // std::cout << "buy_ticket\n";
+    if (!verify_username(cmd_->arg('u'))) {
+        std::cerr << "bad user name\n";
+        std::cout << "-1\n";
+        return;
+    }
+    if (!user_.logged_in(cmd_->arg('u'))) {
+        std::cerr << "user not logged in\n";
+        std::cout << "-1\n";
+        return;
+    }
+    if (!verify_train_name(cmd_->arg('i'))) {
+        std::cerr << "bad train name\n";
+        std::cout << "-1\n";
+        return;
+    }
+    auto ans = train_.query_train(cmd_->arg('i'));
+    if (ans == std::nullopt) {
+        std::cerr << "train not found\n";
+        std::cout << "-1\n";
+        return;
+    }
+    Train& train = ans.value();
+    if (!train.released_) {
+        std::cerr << "train not released\n";
+        std::cout << "-1\n";
+        return;
+    }
+    date d;
+    try {
+        d = parse_date(cmd_->arg('d'));
+    }
+    catch(...) {
+        std::cerr << "bad date\n";
+        std::cout << "-1\n";
+        return;
+    }
+    std::string from = cmd_->arg('f');
+    std::string to = cmd_->arg('t');
+    if (!verify_station_name(from) || !verify_station_name(to)) {
+        std::cerr << "bad station name\n";
+        std::cout << "-1\n";
+        return;
+    }
+    int n;
+    try {
+        n = sjtu::stoi(cmd_->arg('n'));
+    }
+    catch(...) {
+        std::cerr << "bad number\n";
+        std::cout << "-1\n";
+        return;
+    }
+    bool accept_queue;
+    if (cmd_->arg('q') == "true") {
+        accept_queue = true;
+    }
+    else if (cmd_->arg('q') == "false" || cmd_->arg('q').empty()) {
+        accept_queue = false;
+    }
+    else {
+        std::cerr << "bad queue acceptance\n";
+        std::cout << "-1\n";
+        return;
+    }
+    int from_id = train_.station_id(from);
+    int to_id = train_.station_id(to);
+    if (from_id == -1 || to_id == -1) {
+        std::cerr << "station not found\n";
+        std::cout << "-1\n";
+        return;
+    }
+    int spos = -1, epos = -1;
+    for (int i = 0; i < train.stationNum_; i++) {
+        if (train.stations_[i] == from_id) {
+            spos = i;
+        }
+        if (train.stations_[i] == to_id) {
+            epos = i;
+        }
+    }
+    if (spos == -1 || epos == -1 || spos >= epos) {
+        std::cerr << "station not on train or bad sequence\n";
+        std::cout << "-1\n";
+        return;
+    }
+    int departure_date = int(d) - (train.arrivalTimes_[spos] + train.stopoverTimes_[spos]).day_offset_;
+    if (departure_date < int(train.startSaleDate_) || departure_date > int(train.endSaleDate_)) {
+        std::cerr << "outside selling period\n";
+        std::cout << "-1\n";
+        return;
+    }
+    int min_seats = train.seatNum_, price = 0;
+    for (int i = spos; i < epos; i++) {
+        int cur_seat = train.seats_[departure_date][i];
+        if (cur_seat < min_seats) {
+            min_seats = cur_seat;
+        }
+        price += train.prices_[i];
+    }
+    if (min_seats < n) {
+        if (accept_queue) {
+            int total_price = price * n;
+            OrderInfo order_info{FixedString<20>(cmd_->arg('u')), timestamp_};
+            Ticket ticket{FixedString<20>(cmd_->arg('i')), from_id, to_id,
+                d, train.arrivalTimes_[spos] + train.stopoverTimes_[spos],
+                d + (train.arrivalTimes_[epos].day_offset_
+                    - (train.arrivalTimes_[spos] + train.stopoverTimes_[spos]).day_offset_),
+                train.arrivalTimes_[epos],
+                int(train.arrivalTimes_[epos]) - int(train.arrivalTimes_[spos] + train.stopoverTimes_[spos]),
+                price, n
+            };
+            Order order{order_info, TicketStatus::Pending, ticket};
+            order_.add_order(order);
+            order_.add_pending_order(order);
+            std::cout << "queue\n";
+        }
+        else {
+            std::cerr << "ticket not enough\n";
+            std::cout << "-1\n";
+            return;
+        }
+    }
+    else {
+        for (int i = spos; i < epos; i++) {
+            train.seats_[departure_date][i] -= n;
+        }
+        train_.update_train(train_.train_id(cmd_->arg('i')), train);
+        int total_price = price * n;
+        OrderInfo order_info{FixedString<20>(cmd_->arg('u')), timestamp_};
+        Ticket ticket{FixedString<20>(cmd_->arg('i')), from_id, to_id,
+            d, train.arrivalTimes_[spos] + train.stopoverTimes_[spos],
+            d + (train.arrivalTimes_[epos].day_offset_
+                - (train.arrivalTimes_[spos] + train.stopoverTimes_[spos]).day_offset_),
+            train.arrivalTimes_[epos],
+            int(train.arrivalTimes_[epos]) - int(train.arrivalTimes_[spos] + train.stopoverTimes_[spos]),
+            price, n
+        };
+        Order order{order_info, TicketStatus::Purchased, ticket};
+        order_.add_order(order);
+        std::cout << total_price << "\n";
+    }
 }
 
 void TicketSystem::query_order() {

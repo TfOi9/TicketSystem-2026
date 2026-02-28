@@ -157,6 +157,8 @@ public:
 
     int query_station(int station_id, sjtu::vector<TrainPosition>& station_info);
 
+    void update_train(int train_id, Train& train);
+    
     void flush();
 
     void clear();

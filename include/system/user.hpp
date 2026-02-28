@@ -66,6 +66,8 @@ public:
 
     int logout(const std::string& username);
 
+    bool logged_in(const std::string& username);
+
     std::optional<User> query_profile(const std::string& cur_username, const std::string& username);
 
     std::optional<User> modify_profile(const std::string& cur_username, const std::string& username, const std::string& password = "", const std::string& name = "", const std::string& email = "", int privilege = -1);

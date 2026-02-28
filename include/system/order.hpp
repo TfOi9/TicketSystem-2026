@@ -143,12 +143,12 @@ struct TransferTicketDurationCompare {
 class OrderSystem {
 private:
     BPlusTree<FixedString<20>, Order> user_order_map_;
-    BPlusTree<OrderInfo, Order> order_map_;
+    // BPlusTree<OrderInfo, Order> order_map_;
     BPlusTree<int, Order> queue_map_;
 
 public:
     OrderSystem(const std::string& name = "order") :
-        user_order_map_(name + "_user_order_map.dat"), order_map_(name + "_order_map.dat"), queue_map_(name + "_queue_map.dat") {}
+        user_order_map_(name + "_user_order_map.dat")/*, order_map_(name + "_order_map.dat")*/, queue_map_(name + "_queue_map.dat") {}
 
     void add_order(const Order& order);
 
@@ -156,9 +156,11 @@ public:
 
     void query_order(const std::string& username, sjtu::vector<Order>& orders);
 
-    void query_order(const OrderInfo& info, sjtu::vector<Order>& orders);
+    // void query_order(const OrderInfo& info, sjtu::vector<Order>& orders);
 
     void get_pending_queue(sjtu::vector<Order>& pending_orders);
+
+    void add_pending_order(const Order& order);
 
     void remove_pending_order(int pending_id);
 
