@@ -948,7 +948,7 @@ void TicketSystem::query_order() {
     }
     sjtu::vector<Order> orders;
     order_.query_order(cmd_->arg('u'), orders);
-    orders.sort(OrderTimeCompare());
+    orders.sort(OrderTimeReverseCompare());
     std::cout << orders.size() << "\n";
     for (int i = 0; i < orders.size(); i++) {
         Order& order = orders[i];
@@ -975,7 +975,119 @@ void TicketSystem::query_order() {
 }
 
 void TicketSystem::refund_ticket() {
-    std::cout << "refund_ticket\n";
+    // std::cout << "refund_ticket\n";
+    if (!verify_username(cmd_->arg('u'))) {
+        std::cerr << "bad username\n";
+        std::cout << "-1\n";
+        return;
+    }
+    if (!user_.logged_in(cmd_->arg('u'))) {
+        std::cerr << "user not logged in\n";
+        std::cout << "-1\n";
+        return;
+    }
+    int n = 1;
+    if (!cmd_->arg('n').empty()) {
+        try {
+            n = sjtu::stoi(cmd_->arg('n'));
+        }
+        catch(...) {
+            std::cerr << "bad number\n";
+            std::cout << "-1\n";
+            return;
+        }
+        if (n <= 0) {
+            std::cerr << "n not positive\n";
+            std::cout << "-1\n";
+            return;
+        }
+    }
+    sjtu::vector<Order> orders;
+    order_.query_order(cmd_->arg('u'), orders);
+    if (n > orders.size()) {
+        std::cerr << "order not found\n";
+        std::cout << "-1\n";
+        return;
+    }
+    Order& order = orders[n - 1];
+    if (order.status_ == TicketStatus::Refunded) {
+        std::cerr << "order already refunded\n";
+        std::cout << "-1\n";
+        return;
+    }
+    else if (order.status_ == TicketStatus::Pending) {
+        order_.remove_pending_order(order.info_.purchase_timestamp_);
+    }
+    else if (order.status_ == TicketStatus::Purchased) {
+        Train train = train_.query_train(order.ticket_.train_id_.str()).value();
+        int spos = -1, epos = -1;
+        for (int i = 0; i < train.stationNum_; i++) {
+            if (train.stations_[i] == order.ticket_.start_station_) {
+                spos = i;
+            }
+            if (train.stations_[i] == order.ticket_.end_station_) {
+                epos = i;
+            }
+        }
+        int departure_date = int(order.ticket_.departure_date_)
+            - (train.arrivalTimes_[spos] + train.stopoverTimes_[spos]).day_offset_;
+        for (int i = spos; i < epos; i++) {
+            train.seats_[departure_date][i] += order.ticket_.seat_;
+        }
+        // train_.update_train(train_.train_id(train.trainID_.str()), train);
+        sjtu::vector<Order> queue;
+        queue.sort(OrderTimeReverseCompare());
+        order_.get_pending_queue(queue);
+        for (int i = 0; i < queue.size(); i++) {
+            Order& cur_order = queue[i];
+            if (cur_order.ticket_.train_id_ != order.ticket_.train_id_) {
+                continue;
+            }
+            int cur_spos = -1, cur_epos = -1;
+            for (int j = 0; j < train.stationNum_; j++) {
+                if (train.stations_[j] == cur_order.ticket_.start_station_) {
+                    cur_spos = j;
+                }
+                if (train.stations_[j] == cur_order.ticket_.end_station_) {
+                    cur_epos = j;
+                }
+            }
+            if (cur_epos <= spos || cur_spos >= epos) {
+                continue;
+            }
+            int cur_departure_date = int(cur_order.ticket_.departure_date_)
+                - (train.arrivalTimes_[cur_spos] + train.stopoverTimes_[cur_spos]).day_offset_;
+            if (departure_date != cur_departure_date) {
+                continue;
+            }
+            int min_seats = train.seatNum_;
+            for (int j = cur_spos; j < cur_epos; j++) {
+                int cur_seat = train.seats_[departure_date][j];
+                if (cur_seat < min_seats) {
+                    min_seats = cur_seat;
+                }
+            }
+            if (min_seats >= cur_order.ticket_.seat_) {
+                for (int j = cur_spos; j < cur_epos; j++) {
+                    train.seats_[departure_date][j] -= cur_order.ticket_.seat_;
+                }
+                order_.remove_pending_order(cur_order.info_.purchase_timestamp_);
+                order_.delete_order(cur_order);
+                cur_order.status_ = TicketStatus::Purchased;
+                order_.add_order(cur_order);
+            }
+        }
+        train_.update_train(train_.train_id(train.trainID_.str()), train);
+    }
+    else {
+        std::cerr << "unexpected invalid order\n";
+        std::cout << "-1\n";
+        return;
+    }
+    order_.delete_order(order);
+    order.status_ = TicketStatus::Refunded;
+    order_.add_order(order);
+    std::cout << "0\n";
 }
 
 void TicketSystem::clear() {
