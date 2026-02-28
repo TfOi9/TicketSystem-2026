@@ -935,7 +935,43 @@ void TicketSystem::buy_ticket() {
 }
 
 void TicketSystem::query_order() {
-    std::cout << "query_order\n";
+    // std::cout << "query_order\n";
+    if (!verify_username(cmd_->arg('u'))) {
+        std::cerr << "bad username\n";
+        std::cout << "-1\n";
+        return;
+    }
+    if (!user_.logged_in(cmd_->arg('u'))) {
+        std::cerr << "user not logged in\n";
+        std::cout << "-1\n";
+        return;
+    }
+    sjtu::vector<Order> orders;
+    order_.query_order(cmd_->arg('u'), orders);
+    orders.sort(OrderTimeCompare());
+    std::cout << orders.size() << "\n";
+    for (int i = 0; i < orders.size(); i++) {
+        Order& order = orders[i];
+        switch (order.status_) {
+            case TicketStatus::Pending:
+                std::cout << "[pending] "; break;
+            case TicketStatus::Purchased:
+                std::cout << "[success] "; break;
+            case TicketStatus::Refunded:
+                std::cout << "[refunded] "; break;
+            default:
+                std::cerr << "bad order\n";
+                std::cout << "[invalid] ";
+        }
+        std::cout << order.ticket_.train_id_ << " ";
+        std::string from = train_.station_name(order.ticket_.start_station_);
+        std::string to = train_.station_name(order.ticket_.end_station_);
+        std::cout << from << " ";
+        print_time_date(order.ticket_.departure_date_, order.ticket_.departure_time_, std::cout, true);
+        std::cout << " -> " << to << " ";
+        print_time_date(order.ticket_.arrival_date_, order.ticket_.arrival_time_, std::cout, true);
+        std::cout << " " << order.ticket_.price_ << " " << order.ticket_.seat_ << "\n";
+    }
 }
 
 void TicketSystem::refund_ticket() {

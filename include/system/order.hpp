@@ -92,6 +92,12 @@ struct Order {
     Ticket ticket_;
 };
 
+struct OrderTimeCompare {
+    bool operator()(const Order& a, const Order& b) const {
+        return a.info_.purchase_timestamp_ < b.info_.purchase_timestamp_;
+    }
+};
+
 struct TransferTicket {
     Ticket first_ticket_;
     Ticket second_ticket_;
