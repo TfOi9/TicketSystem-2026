@@ -220,7 +220,7 @@ int verify_privilege(const std::string& str) {
 }
 
 bool verify_train_name(const std::string& str) {
-    if (!Validator(str).max_len(20).min_len(1).normal_char_only()) {
+    if (!Validator(str).max_len(20).min_len(1)) {
         return false;
     }
     if (!(str[0] >= 'A' && str[0] <= 'Z' || str[0] >= 'a' && str[0] <= 'z')) {
