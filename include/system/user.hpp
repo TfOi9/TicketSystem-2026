@@ -60,6 +60,8 @@ public:
 
     ~UserSystem() = default;
 
+    bool empty() const;
+
     int add_user(const std::string& cur_username, const std::string& username, const std::string& password, const std::string& name, const std::string& email, int privilege);
 
     int login(const std::string& username, const std::string& password);

@@ -5,6 +5,12 @@
 namespace sjtu {
 
 TicketSystem::~TicketSystem() {
+    std::cerr << "ots = " << order_timestamp_ << std::endl;
+    timestamp_file_.seekp(0, std::ios::beg);
+    timestamp_file_.write(reinterpret_cast<char *>(&order_timestamp_), sizeof(int));
+    if (timestamp_file_.is_open()) {
+        timestamp_file_.close();
+    }
     if (cmd_) {
         delete cmd_;
         cmd_ = nullptr;
@@ -78,9 +84,11 @@ void TicketSystem::run(const volatile std::sig_atomic_t* signal_status) {
         }
         else if (cmd == "modify_profile") {
             if (!cmd_->check("cu", "pnmg")) {
+                std::cerr << "bad check\n";
                 std::cout << "-1\n";
             }
             else {
+                std::cerr << "modify\n";
                 modify_profile();
             }
         }
@@ -180,6 +188,8 @@ void TicketSystem::run(const volatile std::sig_atomic_t* signal_status) {
 }
 
 void TicketSystem::flush() {
+    timestamp_file_.seekp(0, std::ios::beg);
+    timestamp_file_.write(reinterpret_cast<char *>(&order_timestamp_), sizeof(int));
     user_.flush();
     train_.flush();
     order_.flush();
@@ -193,11 +203,8 @@ void TicketSystem::add_user() {
         std::cout << "-1\n";
         return;
     }
-    if (!init_) {
+    if (user_.empty()) {
         ret = user_.add_user("", cmd_->arg('u'), cmd_->arg('p'), cmd_->arg('n'), cmd_->arg('m'), 10);
-        if (!ret) {
-            init_ = true;
-        }
     }
     else {
         int g = verify_privilege(cmd_->arg('g'));
@@ -205,6 +212,7 @@ void TicketSystem::add_user() {
             std::cout << "-1\n";
             return;
         }
+        std::cerr << "add_user " << g << std::endl;
         ret = user_.add_user(cmd_->arg('c'), cmd_->arg('u'), cmd_->arg('p'), cmd_->arg('n'), cmd_->arg('m'), g);
     }
     std::cout << ret << '\n';
@@ -248,32 +256,43 @@ void TicketSystem::query_profile() {
 }
 
 void TicketSystem::modify_profile() {
-    // std::cout << "modify_profile\n";
+    std::cerr << "modify_profile\n";
+    std::cerr << cmd_->arg('c') << " " << cmd_->arg('u') << std::endl;
     if (!verify_username(cmd_->arg('c')) || !verify_username(cmd_->arg('u'))) {
+        std::cerr << "bad username\n";
         std::cout << "-1\n";
         return;
     }
     if (!cmd_->arg('p').empty() && !verify_password(cmd_->arg('p'))) {
+        std::cerr << "bad pwd\n";
         std::cout << "-1\n";
         return;
     }
     if (!cmd_->arg('n').empty() && !verify_chinese_name(cmd_->arg('n'))) {
+        std::cerr << "bad name\n";
         std::cout << "-1\n";
         return;
     }
     if (!cmd_->arg('m').empty() && !verify_email(cmd_->arg('m'))) {
+        std::cerr << "bad email\n";
         std::cout << "-1\n";
         return;
     }
     int g = -1;
     if (!cmd_->arg('g').empty() && (g = verify_privilege(cmd_->arg('g'))) == -1) {
+        std::cerr << "bad g\n";
         std::cout << "-1\n";
         return;
     }
-    std::cerr << g << std::endl;
+    if (cmd_->arg('g').empty()) {
+        
+    }
+    std::cerr << "g = " << g << std::endl;
     auto profile = user_.modify_profile(cmd_->arg('c'), cmd_->arg('u'), cmd_->arg('p'),
         cmd_->arg('n'), cmd_->arg('m'), g);
+    std::cerr << "test\n";
     if (profile == std::nullopt) {
+        std::cerr << "bad modify\n";
         std::cout << "-1\n";
     }
     else {
@@ -515,12 +534,12 @@ void TicketSystem::query_ticket() {
     // std::cout << "query_ticket\n";
     if (!verify_station_name(cmd_->arg('s')) || !verify_station_name(cmd_->arg('t'))) {
         std::cerr << "bad station name\n";
-        std::cout << "-1\n";
+        std::cout << "0\n";
         return;
     }
     if (cmd_->arg('s') == cmd_->arg('t')) {
         std::cerr << "same station\n";
-        std::cout << "-1\n";
+        std::cout << "0\n";
         return;
     }
     date d;
@@ -529,17 +548,17 @@ void TicketSystem::query_ticket() {
     }
     catch(...) {
         std::cerr << "bad date syntax\n";
-        std::cout << "-1\n";
+        std::cout << "0\n";
         return;
     }
     if (d.month_ < 6 || d.month_ > 9 || d.month_ == 9 && d.day_ > 3) {
         std::cerr << "no train at date\n";
-        std::cout << "-1\n";
+        std::cout << "0\n";
         return;
     }
     if (!cmd_->arg('p').empty() && cmd_->arg('p') != "time" && cmd_->arg('p') != "cost") {
         std::cerr << "bad sorting protocol\n";
-        std::cout << "-1\n";
+        std::cout << "0\n";
         return;
     }
     sjtu::vector<TrainPosition> start_trains, end_trains;
@@ -547,7 +566,7 @@ void TicketSystem::query_ticket() {
     int end_query = train_.query_station(cmd_->arg('t'), end_trains);
     if (start_query || end_query) {
         std::cerr << "bad query\n";
-        std::cout << "-1\n";
+        std::cout << "0\n";
         return;
     }
     start_trains.sort(TrainPositionCompare());
@@ -622,12 +641,12 @@ void TicketSystem::query_transfer() {
     // std::cout << "query_transfer\n";
     if (!verify_station_name(cmd_->arg('s')) || !verify_station_name(cmd_->arg('t'))) {
         std::cerr << "bad station name\n";
-        std::cout << "-1\n";
+        std::cout << "0\n";
         return;
     }
     if (cmd_->arg('s') == cmd_->arg('t')) {
         std::cerr << "same station\n";
-        std::cout << "-1\n";
+        std::cout << "0\n";
         return;
     }
     date d;
@@ -636,17 +655,17 @@ void TicketSystem::query_transfer() {
     }
     catch(...) {
         std::cerr << "bad date syntax\n";
-        std::cout << "-1\n";
+        std::cout << "0\n";
         return;
     }
     if (d.month_ < 6 || d.month_ > 9 || d.month_ == 9 && d.day_ > 3) {
         std::cerr << "no train at date\n";
-        std::cout << "-1\n";
+        std::cout << "0\n";
         return;
     }
     if (!cmd_->arg('p').empty() && cmd_->arg('p') != "time" && cmd_->arg('p') != "cost") {
         std::cerr << "bad sorting protocol\n";
-        std::cout << "-1\n";
+        std::cout << "0\n";
         return;
     }
     sjtu::vector<TrainPosition> start_trains, end_trains;
@@ -656,7 +675,7 @@ void TicketSystem::query_transfer() {
     int end_station = train_.station_id(cmd_->arg('t'));
     if (start_query || end_query) {
         std::cerr << "bad query\n";
-        std::cout << "-1\n";
+        std::cout << "0\n";
         return;
     }
     int d_val = int(d);
@@ -843,6 +862,11 @@ void TicketSystem::buy_ticket() {
         std::cout << "-1\n";
         return;
     }
+    if (n <= 0) {
+        std::cerr << "n not positive\n";
+        std::cout << "-1\n";
+        return;
+    }
     bool accept_queue;
     if (cmd_->arg('q') == "true") {
         accept_queue = true;
@@ -893,7 +917,7 @@ void TicketSystem::buy_ticket() {
     if (min_seats < n) {
         if (accept_queue) {
             int total_price = price * n;
-            OrderInfo order_info{FixedString<20>(cmd_->arg('u')), timestamp_};
+            OrderInfo order_info{FixedString<20>(cmd_->arg('u')), order_timestamp_};
             Ticket ticket{FixedString<20>(cmd_->arg('i')), from_id, to_id,
                 d, train.arrivalTimes_[spos] + train.stopoverTimes_[spos],
                 d + (train.arrivalTimes_[epos].day_offset_
@@ -905,6 +929,7 @@ void TicketSystem::buy_ticket() {
             Order order{order_info, TicketStatus::Pending, ticket};
             order_.add_order(order);
             order_.add_pending_order(order);
+            order_timestamp_++;
             std::cout << "queue\n";
         }
         else {
@@ -919,7 +944,7 @@ void TicketSystem::buy_ticket() {
         }
         train_.update_train(train_.train_id(cmd_->arg('i')), train);
         int total_price = price * n;
-        OrderInfo order_info{FixedString<20>(cmd_->arg('u')), timestamp_};
+        OrderInfo order_info{FixedString<20>(cmd_->arg('u')), order_timestamp_};
         Ticket ticket{FixedString<20>(cmd_->arg('i')), from_id, to_id,
             d, train.arrivalTimes_[spos] + train.stopoverTimes_[spos],
             d + (train.arrivalTimes_[epos].day_offset_
@@ -930,6 +955,7 @@ void TicketSystem::buy_ticket() {
         };
         Order order{order_info, TicketStatus::Purchased, ticket};
         order_.add_order(order);
+        order_timestamp_++;
         std::cout << total_price << "\n";
     }
 }
@@ -971,6 +997,7 @@ void TicketSystem::query_order() {
         std::cout << " -> " << to << " ";
         print_time_date(order.ticket_.arrival_date_, order.ticket_.arrival_time_, std::cout, true);
         std::cout << " " << order.ticket_.price_ << " " << order.ticket_.seat_ << "\n";
+        // std::cerr << order.info_.purchase_timestamp_ << "\n";
     }
 }
 
@@ -1004,6 +1031,7 @@ void TicketSystem::refund_ticket() {
     }
     sjtu::vector<Order> orders;
     order_.query_order(cmd_->arg('u'), orders);
+    orders.sort(OrderTimeReverseCompare());
     if (n > orders.size()) {
         std::cerr << "order not found\n";
         std::cout << "-1\n";
@@ -1036,8 +1064,8 @@ void TicketSystem::refund_ticket() {
         }
         // train_.update_train(train_.train_id(train.trainID_.str()), train);
         sjtu::vector<Order> queue;
-        queue.sort(OrderTimeReverseCompare());
         order_.get_pending_queue(queue);
+        queue.sort(OrderTimeCompare());
         for (int i = 0; i < queue.size(); i++) {
             Order& cur_order = queue[i];
             if (cur_order.ticket_.train_id_ != order.ticket_.train_id_) {
@@ -1096,11 +1124,15 @@ void TicketSystem::clear() {
     train_.clear();
     order_.clear();
     timestamp_ = 0;
+    order_timestamp_ = 0;
+    if (timestamp_file_.is_open()) {
+        timestamp_file_.close();
+        timestamp_file_.open("timestamp.dat", std::ios::out | std::ios::binary);
+    }
     if (cmd_) {
         delete cmd_;
         cmd_ = nullptr;
     }
-    init_ = false;
 }
 
 } // namespace sjtu

@@ -110,6 +110,11 @@ public:
         file.write(reinterpret_cast<char *>(&t), sizeofT);
     }
 
+    void flush() {
+        write_info(size_, 1);
+        file.flush();
+    }
+
     void read(T &t, const int pos) {
         file.seekg(info_offset + pos * sizeofT);
         file.read(reinterpret_cast<char *>(&t), sizeofT);

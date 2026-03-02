@@ -36,6 +36,8 @@ public:
 
     ~BPlusTree();
 
+    bool empty() const;
+
     std::optional<ValueType> find(const KeyType& key);
 
     void find_all(const KeyType& key, sjtu::vector<ValueType>& vec);
@@ -60,6 +62,11 @@ BPT_TYPE::BPlusTree(const std::string file_name) : buffer_(CACHE_CAPACITY, file_
 BPT_TEMPLATE_ARGS
 BPT_TYPE::~BPlusTree() {
     buffer_.set_root_pos(root_);
+}
+
+BPT_TEMPLATE_ARGS
+bool BPT_TYPE::empty() const {
+    return root_ == 0;
 }
 
 BPT_TEMPLATE_ARGS

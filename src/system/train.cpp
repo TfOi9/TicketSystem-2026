@@ -109,6 +109,8 @@ void TrainSystem::update_train(int train_id, Train& train) {
 }
 
 void TrainSystem::flush() {
+    trains_.flush();
+    stations_.flush();
     train_map_.flush();
     station_map_.flush();
     position_map_.flush();

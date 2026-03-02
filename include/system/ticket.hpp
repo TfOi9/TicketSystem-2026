@@ -2,6 +2,7 @@
 #define TICKET_HPP
 
 #include <csignal>
+#include <fstream>
 
 #include "user.hpp"
 #include "train.hpp"
@@ -17,11 +18,23 @@ private:
     OrderSystem order_;
     int timestamp_;
     Command *cmd_ = nullptr;
-    bool init_ = false;
+    std::fstream timestamp_file_;
+    int order_timestamp_;
 
 public:
     TicketSystem(const std::string& name = "ticket_system") :
-        user_(name + "_user"), train_(name + "_train"), order_(name + "_order") {}
+        user_(name + "_user"), train_(name + "_train"), order_(name + "_order") {
+        timestamp_file_.open("timestamp.dat", std::ios::in | std::ios::out | std::ios::binary);
+        if (!timestamp_file_) {
+            timestamp_file_.open("timestamp.dat", std::ios::out | std::ios::binary);
+            order_timestamp_ = 0;
+        }
+        else {
+            timestamp_file_.seekg(0, std::ios::beg);
+            timestamp_file_.read(reinterpret_cast<char *>(&order_timestamp_), sizeof(int));
+        }
+        std::cerr << "ots = " << order_timestamp_ << std::endl;
+    }
 
     ~TicketSystem();
 
