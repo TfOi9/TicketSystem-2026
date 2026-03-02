@@ -914,7 +914,7 @@ void TicketSystem::buy_ticket() {
         price += train.prices_[i];
     }
     if (min_seats < n) {
-        if (accept_queue) {
+        if (accept_queue && n <= train.seatNum_) {
             int total_price = price * n;
             OrderInfo order_info{FixedString<20>(cmd_->arg('u')), order_timestamp_};
             Ticket ticket{FixedString<20>(cmd_->arg('i')), from_id, to_id,
