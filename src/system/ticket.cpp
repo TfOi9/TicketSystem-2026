@@ -739,7 +739,7 @@ void TicketSystem::query_transfer() {
                 last_arrival_time.day_offset_ = 0;
                 int last_arrival_date = int((*it).arrival_date_);
                 int earliest_departure_date =
-                    (int(last_arrival_time) < int(departure_time)) ? last_arrival_date : (last_arrival_date + 1);
+                    (int(last_arrival_time) <= int(departure_time)) ? last_arrival_date : (last_arrival_date + 1);
                 int station_day_offset = (train.arrivalTimes_[j] + train.stopoverTimes_[j]).day_offset_;
                 int second_train_depart_date = earliest_departure_date - station_day_offset;
                 if (second_train_depart_date < int(train.startSaleDate_)) {
