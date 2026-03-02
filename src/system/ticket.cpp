@@ -738,20 +738,19 @@ void TicketSystem::query_transfer() {
                 time last_arrival_time = (*it).arrival_time_;
                 last_arrival_time.day_offset_ = 0;
                 int last_arrival_date = int((*it).arrival_date_);
-                int departure_date;
-                if (int(last_arrival_time) < int(departure_time)) {
-                    departure_date = last_arrival_date;
+                int earliest_departure_date =
+                    (int(last_arrival_time) < int(departure_time)) ? last_arrival_date : (last_arrival_date + 1);
+                int station_day_offset = (train.arrivalTimes_[j] + train.stopoverTimes_[j]).day_offset_;
+                int second_train_depart_date = earliest_departure_date - station_day_offset;
+                if (second_train_depart_date < int(train.startSaleDate_)) {
+                    second_train_depart_date = int(train.startSaleDate_);
                 }
-                else {
-                    departure_date = last_arrival_date + 1;
-                }
-                int second_train_depart_date = departure_date - (train.arrivalTimes_[j] + train.stopoverTimes_[j]).day_offset_;
-                if (second_train_depart_date < int(train.startSaleDate_)
-                    || second_train_depart_date > int(train.endSaleDate_)) {
+                if (second_train_depart_date > int(train.endSaleDate_)) {
                     // std::cerr << train.trainID_ << " " << second_train_depart_date << std::endl;
                     it++;
                     continue;
                 }
+                int departure_date = second_train_depart_date + station_day_offset;
                 int min_seats = train.seatNum_;
                 for (int k = j; k < end_trains[i].pos_; k++) {
                     int cur_seat = train.seats_[second_train_depart_date][k];

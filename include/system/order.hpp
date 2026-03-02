@@ -92,6 +92,30 @@ struct Order {
     Ticket ticket_;
 };
 
+inline bool operator==(const Order& a, const Order& b) {
+    return a.info_ == b.info_;
+}
+
+inline bool operator!=(const Order& a, const Order& b) {
+    return !(a == b);
+}
+
+inline bool operator<(const Order& a, const Order& b) {
+    return a.info_ < b.info_;
+}
+
+inline bool operator>(const Order& a, const Order& b) {
+    return b < a;
+}
+
+inline bool operator<=(const Order& a, const Order& b) {
+    return !(b < a);
+}
+
+inline bool operator>=(const Order& a, const Order& b) {
+    return !(a < b);
+}
+
 struct OrderTimeCompare {
     bool operator()(const Order& a, const Order& b) const {
         return a.info_.purchase_timestamp_ < b.info_.purchase_timestamp_;
