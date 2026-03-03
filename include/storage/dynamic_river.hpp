@@ -51,6 +51,8 @@ public:
         file.open(file_name, std::ios::in | std::ios::out | std::ios::binary);
     }
 
+    void flush() {}
+
     diskpos_t write(T& t) {
         int len = 0;
         char *data = str_(t, len);

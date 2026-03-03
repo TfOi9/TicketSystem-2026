@@ -4,7 +4,7 @@
 #include "../../include/utils/fixed_string.hpp"
 #include "../../include/utils/time_date.hpp"
 #include "../../include/storage/bpt.hpp"
-// #include "../../include/storage/dynamic_river.hpp"
+#include "../../include/storage/dynamic_river.hpp"
 #include "../../include/storage/memory_river.hpp"
 #include "../../include/stl/vector.hpp"
 
@@ -123,8 +123,8 @@ struct TrainPositionCompare {
 
 class TrainSystem {
 private:
-    MemoryRiver<Train> trains_;
-    // DynamicRiver<Train, TrainStringifier, TrainAntiStringifier, TrainSizeCalculator> trains_;
+    // MemoryRiver<Train> trains_;
+    DynamicRiver<Train, TrainStringifier, TrainAntiStringifier, TrainSizeCalculator> trains_;
     MemoryRiver<FixedString<40>> stations_;
     BPlusTree<FixedString<20>, int> train_map_;
     BPlusTree<FixedString<40>, int> station_map_;
