@@ -21,9 +21,9 @@ void clearFiles(const std::string& directory = ".") {
         }
         std::cout << "共删除了 " << count << " 个 .dat 文件" << std::endl;
     } catch (const fs::filesystem_error& ex) {
-        std::cerr << "文件系统错误: " << ex.what() << std::endl;
+        // std::cerr << "文件系统错误: " << ex.what() << std::endl;
     } catch (const std::exception& ex) {
-        std::cerr << "错误: " << ex.what() << std::endl;
+        // std::cerr << "错误: " << ex.what() << std::endl;
     }
 }
 

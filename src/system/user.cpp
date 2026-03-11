@@ -40,7 +40,7 @@ int UserSystem::login(const std::string &username, const std::string &password) 
     login_list_.insert(fixed_username, target_user->privilege());
     auto it = login_list_.find(fixed_username);
     if (it == login_list_.end()) {
-        std::cerr << "insertion failed\n";
+        // std::cerr << "insertion failed\n";
     }
     return 0;
 }
@@ -81,21 +81,21 @@ std::optional<User> UserSystem::query_profile(const std::string &cur_username, c
 std::optional<User> UserSystem::modify_profile(const std::string &cur_username, const std::string &username, const std::string& password, const std::string& name, const std::string& email, int privilege) {
     auto it = login_list_.find(FixedString<20>(cur_username));
     if (it == login_list_.end()) {
-        std::cerr << "not logged in\n";
+        // std::cerr << "not logged in\n";
         return std::nullopt;
     }
     std::optional<User> target_user = user_map_.find(FixedString<20>(username));
     if (target_user == std::nullopt) {
-        std::cerr << "not found\n";
+        // std::cerr << "not found\n";
         return std::nullopt;
     }
-    std::cerr << *(it->second) << " " << target_user->privilege() << std::endl;
+    // std::cerr << *(it->second) << " " << target_user->privilege() << std::endl;
     if (cur_username != username && *(it->second) <= target_user->privilege()) {
-        std::cerr << "bad g\n";
+        // std::cerr << "bad g\n";
         return std::nullopt;
     }
     if (privilege != -1 && privilege >= *(it->second)) {
-        std::cerr << "+g\n";
+        // std::cerr << "+g\n";
         return std::nullopt;
     }
     user_map_.erase(FixedString<20>(username), target_user.value());

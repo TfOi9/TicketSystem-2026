@@ -33,7 +33,7 @@ public:
             timestamp_file_.seekg(0, std::ios::beg);
             timestamp_file_.read(reinterpret_cast<char *>(&order_timestamp_), sizeof(int));
         }
-        std::cerr << "ots = " << order_timestamp_ << std::endl;
+        // std::cerr << "ots = " << order_timestamp_ << std::endl;
     }
 
     ~TicketSystem();

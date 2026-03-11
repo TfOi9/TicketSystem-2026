@@ -1,4 +1,5 @@
 #include "../include/system/ticket.hpp"
+#include "../include/config.hpp"
 
 #include <csignal>
 
@@ -6,11 +7,11 @@ volatile std::sig_atomic_t status = 0;
 
 void signal_handler(int sig) {
     if (sig == SIGINT) {
-        std::cerr << " **captured SIGINT signal** " << std::endl;
+        // std::cerr << " **captured SIGINT signal** " << std::endl;
         status = SIGINT;
     }
     else if (sig == SIGTERM) {
-        std::cerr << " **captured SIGTERM signal** " << std::endl;
+        // std::cerr << " **captured SIGTERM signal** " << std::endl;
         status = SIGTERM;
     }
 }
