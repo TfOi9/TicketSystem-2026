@@ -2,6 +2,7 @@
 #include <QtCore/qbytearray.h>
 #include <QtCore/qlogging.h>
 #include <QtNetwork/qhostaddress.h>
+#include <iostream>
 
 namespace sjtu {
 
@@ -44,9 +45,9 @@ void TCPServer::onReadyRead() {
     QTcpSocket *socket = qobject_cast<QTcpSocket*>(sender());
     if (!socket) return;
     QByteArray data = socket->readAll();
-    qDebug() << "Data received from client.";
     QString msg = QString::fromUtf8(data);
-    socket->write("Server received data.");
+    qDebug() << "Data received from client:" << msg;
+    std::cout << "Received from " << socket->peerAddress().toString().toStdString() << ": " << msg.toStdString() << std::endl;
 }
 
 void TCPServer::onClientDisconnected() {

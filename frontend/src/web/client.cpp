@@ -4,6 +4,8 @@
 #include <QTimer>
 #include <string>
 #include <iostream>
+#include <QSocketNotifier>
+#include <QTextStream>
 
 int main(int argc, char **argv) {
     QCoreApplication a(argc, argv);
@@ -18,18 +20,15 @@ int main(int argc, char **argv) {
     QObject::connect(&client, &sjtu::TCPClient::received, 
                      [](const QString &msg) {
         qDebug() << "Received:" << msg;
+        std::cout << "Received: " << msg.toStdString() << std::endl;
     });
     
     client.connectToServer("127.0.0.1", 1145);
 
-    QTimer inputTimer;
     QTextStream cinStream(stdin);
-    
-    QObject::connect(&inputTimer, &QTimer::timeout, [&]() {
-        if (cinStream.atEnd()) {
-            return;
-        }
-        
+    QSocketNotifier stdinNotifier(fileno(stdin), QSocketNotifier::Read, &a);
+    QObject::connect(&stdinNotifier, &QSocketNotifier::activated, [&](int) {
+        if (cinStream.atEnd()) return;
         QString line = cinStream.readLine();
         if (line.startsWith("send ")) {
             QString msg = line.mid(5);
@@ -40,8 +39,6 @@ int main(int argc, char **argv) {
             a.quit();
         }
     });
-    
-    inputTimer.start(500);
-    
+
     return a.exec();
 }

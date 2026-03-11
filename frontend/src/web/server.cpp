@@ -3,6 +3,8 @@
 #include <QTimer>
 #include <string>
 #include <iostream>
+#include <QSocketNotifier>
+#include <QTextStream>
 
 int main(int argc, char **argv) {
     QCoreApplication a(argc, argv);
@@ -12,18 +14,16 @@ int main(int argc, char **argv) {
 
     QTimer timer;
     QObject::connect(&timer, &QTimer::timeout, [&]() {
-        server.broadcast("Heartbeat from server");
+        QString hb = "Heartbeat from server";
+        server.broadcast(hb);
+        std::cout << "Broadcast: " << hb.toStdString() << std::endl;
     });
-    timer.start(5000);
-
-    QTimer inputTimer;
-    QTextStream cinStream(stdin);
+    timer.start(60000);
     
-    QObject::connect(&inputTimer, &QTimer::timeout, [&]() {
-        if (cinStream.atEnd()) {
-            return;
-        }
-        
+    QTextStream cinStream(stdin);
+    QSocketNotifier stdinNotifier(fileno(stdin), QSocketNotifier::Read, &a);
+    QObject::connect(&stdinNotifier, &QSocketNotifier::activated, [&](int) {
+        if (cinStream.atEnd()) return;
         QString line = cinStream.readLine();
         if (line.startsWith("broadcast ")) {
             QString msg = line.mid(10);
@@ -34,8 +34,6 @@ int main(int argc, char **argv) {
             a.quit();
         }
     });
-    
-    inputTimer.start(500);
-    
+
     return a.exec();
 }
