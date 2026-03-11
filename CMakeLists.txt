@@ -35,6 +35,8 @@ add_executable (
 	frontend/src/web/server.cpp
 	frontend/include/web/tcp/tcpserver.hpp
 	frontend/src/web/tcp/tcpserver.cpp
+	frontend/include/web/udp/udpserver.hpp
+	frontend/src/web/udp/udpserver.cpp
 	frontend/include/web/dispatch/dispatcher.hpp
 	frontend/include/web/dispatch/sender.hpp
 	frontend/src/web/dispatch/dispatcher.cpp
@@ -49,6 +51,8 @@ add_executable (
 	frontend/src/web/client.cpp
 	frontend/include/web/tcp/tcpclient.hpp
 	frontend/src/web/tcp/tcpclient.cpp
+	frontend/include/web/udp/udpclient.hpp
+	frontend/src/web/udp/udpclient.cpp
 	frontend/include/web/dispatch/dispatcher.hpp
 	frontend/include/web/dispatch/sender.hpp
 	frontend/src/web/dispatch/dispatcher.cpp

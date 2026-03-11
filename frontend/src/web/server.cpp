@@ -1,5 +1,6 @@
 #include <QCoreApplication>
 #include "../../include/web/tcp/tcpserver.hpp"
+#include "../../include/web/udp/udpserver.hpp"
 #include <QTimer>
 #include <string>
 #include <iostream>
@@ -11,6 +12,15 @@ int main(int argc, char **argv) {
     
     sjtu::TCPServer server;
     server.start(1145);
+
+    sjtu::UDPServer udpServer;
+    udpServer.startListening(45454);
+    QTimer udpTimer;
+    QObject::connect(&udpTimer, &QTimer::timeout, [&]() {
+        QString tag = "TicketSystem";
+        udpServer.broadcast(tag, 45454);
+    });
+    udpTimer.start(2000);
 
     QTimer timer;
     QObject::connect(&timer, &QTimer::timeout, [&]() {
