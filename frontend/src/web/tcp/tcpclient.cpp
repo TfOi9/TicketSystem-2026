@@ -1,4 +1,5 @@
-#include "../../include/web/tcpclient.hpp"
+#include "../../../include/web/tcp/tcpclient.hpp"
+#include "../../../include/web/tlv/tlvpacket.hpp"
 #include <QtCore/qlogging.h>
 #include <QtCore/qobject.h>
 #include <QtCore/qoverload.h>
@@ -23,9 +24,15 @@ void TCPClient::disconnect() {
 }
 
 void TCPClient::send(const QString &msg) {
-    if (socket->isOpen()) {
-        socket->write(msg.toUtf8());
+    sendPacket(kTextMessageType, msg.toUtf8());
+}
+
+void TCPClient::sendPacket(uint32_t type, const QByteArray& payload) {
+    if (!socket->isOpen()) {
+        return;
     }
+    TLVPacket packet(type, static_cast<uint32_t>(payload.size()), payload.constData());
+    socket->write(packet.serialize());
 }
 
 bool TCPClient::isConnected() const {
@@ -43,8 +50,18 @@ void TCPClient::onDisconnected() {
 }
 
 void TCPClient::onReadyRead() {
-    QByteArray data = socket->readAll();
-    emit received(QString::fromUtf8(data));
+    parser_.appendData(socket->readAll());
+
+    while (parser_.hasCompletePacket()) {
+        TLVPacket packet = parser_.nextPacket();
+        QByteArray payload(packet.data(), static_cast<qsizetype>(packet.size()));
+
+        emit packetReceived(packet.type(), payload);
+        dispatcher_.dispatch(packet.type(), payload);
+        if (packet.type() == kTextMessageType) {
+            emit received(QString::fromUtf8(payload));
+        }
+    }
 }
 
 void TCPClient::onError(QAbstractSocket::SocketError socketError) {
