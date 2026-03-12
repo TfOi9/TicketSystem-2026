@@ -2,7 +2,6 @@
 #include "../../../include/web/tlv/tlvpacket.hpp"
 #include <QtCore/qlogging.h>
 #include <QtCore/qobject.h>
-#include <QtCore/qoverload.h>
 #include <QtNetwork/qabstractsocket.h>
 
 namespace sjtu {
