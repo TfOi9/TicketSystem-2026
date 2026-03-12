@@ -44,4 +44,8 @@ void TLVParser::reset() {
     expected_size_ = 0;
 }
 
+size_t TLVParser::bufferSize() const {
+    return buffer_.size();
+}
+
 } // namespace sjtu
