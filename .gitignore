@@ -9,6 +9,8 @@
 build/*
 test/*
 !test/tlv/
+!test/fixed_string_test.cpp
+!test/type_helper_test.cpp
 tools/*
 temp/*
 .DS_Store
