@@ -28,6 +28,12 @@ public:
 
     std::string arg(char key) const;
 
+    void set_timestamp(int timestamp);
+
+    void set_cmd(const std::string& cmd);
+
+    void set_arg(char key, const std::string& arg);
+
     bool check(const std::string& must, const std::string& optional);
 
 };

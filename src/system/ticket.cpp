@@ -1,7 +1,9 @@
 #include "../../include/system/ticket.hpp"
 #include "../../include/utils/validator.hpp"
 #include "../../include/config.hpp"
+#include "command/command.hpp"
 #include <optional>
+#include <sstream>
 
 namespace sjtu {
 
@@ -186,6 +188,144 @@ void TicketSystem::run(const volatile std::sig_atomic_t* signal_status) {
             std::cout << "-1\n";
         }
     }
+}
+
+std::string TicketSystem::handle(const Command &command) {
+    if (cmd_) delete cmd_;
+    cmd_ = new Command(command);
+    std::stringstream ret;
+    std::cerr << "alive " << ret.str() << std::endl;
+    ret << "[" << timestamp_ << "] ";
+    std::cerr << "alive " << ret.str() << std::endl;
+    std::string cmd = cmd_->cmd();
+    std::cerr << "alive " << ret.str() << cmd << std::endl;
+    if (cmd == "add_user") {
+        if (!cmd_->check("cupnmg", "")) {
+            ret << "-1\n";
+        }
+        else {
+            std::cerr << "To add user\n";
+            add_user();
+        }
+    }
+    else if (cmd == "login") {
+        if (!cmd_->check("up", "")) {
+            ret << "-1\n";
+        }
+        else {
+            login();
+        }
+    }
+    else if (cmd == "logout") {
+        if (!cmd_->check("u", "")) {
+            ret << "-1\n";
+        }
+        else {
+            logout();
+        }
+    }
+    else if (cmd == "query_profile") {
+        if (!cmd_->check("cu", "")) {
+            ret << "-1\n";
+        }
+        else {
+            query_profile();
+        }
+    }
+    else if (cmd == "modify_profile") {
+        if (!cmd_->check("cu", "pnmg")) {
+            // std::cerr << "bad check\n";
+            ret << "-1\n";
+        }
+        else {
+            // std::cerr << "modify\n";
+            modify_profile();
+        }
+    }
+    else if (cmd == "add_train") {
+        if (!cmd_->check("inmspxtody", "")) {
+            ret << "-1\n";
+        }
+        else {
+            add_train();
+        }
+    }
+    else if (cmd == "delete_train") {
+        if (!cmd_->check("i", "")) {
+            ret << "-1\n";
+        }
+        else {
+            delete_train();
+        }
+    }
+    else if (cmd == "release_train") {
+        if (!cmd_->check("i", "")) {
+            ret << "-1\n";
+        }
+        else {
+            release_train();
+        }
+    }
+    else if (cmd == "query_train") {
+        if (!cmd_->check("id", "")) {
+            ret << "-1\n";
+        }
+        else {
+            query_train();
+        }
+    }
+    else if (cmd == "query_ticket") {
+        if (!cmd_->check("std", "p")) {
+            ret << "-1\n";
+        }
+        else {
+            query_ticket();
+        }
+    }
+    else if (cmd == "query_transfer") {
+        if (!cmd_->check("std", "p")) {
+            ret << "-1\n";
+        }
+        else {
+            query_transfer();
+        }
+    }
+    else if (cmd == "buy_ticket") {
+        if (!cmd_->check("uidnft", "q")) {
+            ret << "-1\n";
+        }
+        else {
+            buy_ticket();
+        }
+    }
+    else if (cmd == "query_order") {
+        if (!cmd_->check("u", "")) {
+            ret << "-1\n";
+        }
+        else {
+            query_order();
+        }
+    }
+    else if (cmd == "refund_ticket") {
+        if (!cmd_->check("u", "n")) {
+            ret << "-1\n";
+        }
+        else {
+            refund_ticket();
+        }
+    }
+    else if (cmd == "clean") {
+        if (!cmd_->check("", "")) {
+            ret << "-1\n";
+        }
+        else {
+            clear();
+        }
+    }
+    else {
+        ret << "-1\n";
+    }
+    return ret.str();
 }
 
 void TicketSystem::flush() {

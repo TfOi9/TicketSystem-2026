@@ -44,6 +44,9 @@ add_executable (
 	frontend/include/web/tlv/tlvparser.hpp
 	frontend/src/web/tlv/tlvpacket.cpp
 	frontend/src/web/tlv/tlvparser.cpp
+	src/command/command.cpp src/command/token.cpp
+	src/system/order.cpp src/system/ticket.cpp src/system/train.cpp src/system/user.cpp
+	src/utils/time_date.cpp src/utils/validator.cpp
 )
 
 add_executable (
@@ -60,6 +63,9 @@ add_executable (
 	frontend/include/web/tlv/tlvparser.hpp
 	frontend/src/web/tlv/tlvpacket.cpp
 	frontend/src/web/tlv/tlvparser.cpp
+	src/command/command.cpp src/command/token.cpp
+	src/system/order.cpp src/system/ticket.cpp src/system/train.cpp src/system/user.cpp
+	src/utils/time_date.cpp src/utils/validator.cpp
 )
 
 target_link_libraries(server Qt6::Core Qt6::Widgets Qt6::Network)

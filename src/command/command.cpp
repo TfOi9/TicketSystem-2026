@@ -61,6 +61,21 @@ std::string Command::arg(char key) const {
     return (key >= 'a' && key <= 'z') ? args_[key - 'a'] : "";
 }
 
+void Command::set_timestamp(int timestamp) {
+    timestamp_ = timestamp;
+}
+
+void Command::set_cmd(const std::string &cmd) {
+    cmd_ = cmd;
+}
+
+void Command::set_arg(char key, const std::string &arg) {
+    if (key < 'a' || key > 'z') {
+        throw std::runtime_error("invalid key");
+    }
+    args_[key - 'a'] = arg;
+}
+
 bool Command::check(const std::string& must, const std::string& optional) {
     for (const char ch : must) {
         if (args_[ch - 'a'].empty()) {

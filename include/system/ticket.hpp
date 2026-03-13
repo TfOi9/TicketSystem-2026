@@ -40,6 +40,8 @@ public:
 
     void run(const volatile std::sig_atomic_t* signal_status = nullptr);
 
+    std::string handle(const Command& command);
+
     void flush();
 
     void add_user();
