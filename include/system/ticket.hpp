@@ -3,6 +3,7 @@
 
 #include <csignal>
 #include <fstream>
+#include <iostream>
 
 #include "user.hpp"
 #include "train.hpp"
@@ -44,33 +45,33 @@ public:
 
     void flush();
 
-    void add_user();
+    void add_user(std::ostream& os = std::cout);
 
-    void login();
+    void login(std::ostream& os = std::cout);
 
-    void logout();
+    void logout(std::ostream& os = std::cout);
 
-    void query_profile();
+    void query_profile(std::ostream& os = std::cout);
 
-    void modify_profile();
+    void modify_profile(std::ostream& os = std::cout);
 
-    void add_train();
+    void add_train(std::ostream& os = std::cout);
 
-    void delete_train();
+    void delete_train(std::ostream& os = std::cout);
 
-    void release_train();
+    void release_train(std::ostream& os = std::cout);
 
-    void query_train();
+    void query_train(std::ostream& os = std::cout);
 
-    void query_ticket();
+    void query_ticket(std::ostream& os = std::cout);
 
-    void query_transfer();
+    void query_transfer(std::ostream& os = std::cout);
 
-    void buy_ticket();
+    void buy_ticket(std::ostream& os = std::cout);
 
-    void query_order();
+    void query_order(std::ostream& os = std::cout);
 
-    void refund_ticket();
+    void refund_ticket(std::ostream& os = std::cout);
 
     void clear();
 
