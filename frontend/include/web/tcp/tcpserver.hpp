@@ -22,6 +22,7 @@ class TCPServer : public QObject {
 
 public:
     static constexpr uint32_t kTextMessageType = 1;
+    static constexpr uint32_t kResultMessageType = 2;
 
     explicit TCPServer(QObject *parent = nullptr);
     ~TCPServer();

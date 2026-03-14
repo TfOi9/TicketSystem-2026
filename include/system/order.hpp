@@ -21,6 +21,19 @@ struct Ticket {
     int seat_;
 };
 
+struct CompleteTicket {
+    FixedString<20> train_id_;
+    FixedString<40> start_station_;
+    FixedString<40> end_station_;
+    date departure_date_;
+    time departure_time_;
+    date arrival_date_;
+    time arrival_time_;
+    int duration_;
+    int price_;
+    int seat_;
+};
+
 struct TicketTrainIDCompare {
     bool operator()(const Ticket& a, const Ticket& b) const {
         return a.train_id_ < b.train_id_;
@@ -92,6 +105,12 @@ struct Order {
     Ticket ticket_;
 };
 
+struct CompleteOrder {
+    OrderInfo info_;
+    TicketStatus status_;
+    CompleteTicket ticket_;
+};
+
 inline bool operator==(const Order& a, const Order& b) {
     return a.info_ == b.info_;
 }
@@ -142,6 +161,13 @@ struct TransferTicket {
         return arrival - departure;
     }
 
+};
+
+struct CompleteTransferTicket {
+    CompleteTicket first_ticket_;
+    CompleteTicket second_ticket_;
+    int price_;
+    int duration_;
 };
 
 struct TransferTicketPriceCompare {

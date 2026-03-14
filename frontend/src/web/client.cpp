@@ -13,6 +13,7 @@
 
 #include "../../../include/command/command.hpp"
 #include "../../../include/command/token.hpp"
+#include "../../../include/result/result.hpp"
 
 QByteArray serializeCommandInfo(const sjtu::Command& cmd) {
     QByteArray payload;
@@ -54,6 +55,37 @@ int main(int argc, char **argv) {
         parseCommandInfo,
         [&](const sjtu::Command& cmd) {
             std::cout << "Package sent at timestamp " << cmd.timestamp() << std::endl;
+        }
+    );
+
+    client.registerPacketReceiver<QByteArray>(
+        sjtu::TCPClient::kResultMessageType,
+        [](const QByteArray& payload, QByteArray& out) {
+            out = payload;
+            return true;
+        },
+        [](const QByteArray& payload) {
+            if (payload.size() < static_cast<int>(sizeof(quint32))) {
+                std::cerr << "Invalid result payload: too short" << std::endl;
+                return;
+            }
+            QDataStream in(payload);
+            in.setVersion(QDataStream::Qt_6_2);
+            quint32 rawType = 0;
+            in >> rawType;
+            const int headerSize = static_cast<int>(sizeof(quint32));
+            QByteArray body = payload.mid(headerSize);
+
+            auto result = sjtu::Result::deserialize(
+                static_cast<sjtu::ResultType>(rawType),
+                body.constData(),
+                static_cast<uint32_t>(body.size())
+            );
+            if (!result) {
+                std::cerr << "Unknown result type: " << rawType << std::endl;
+                return;
+            }
+            result->print(std::cout);
         }
     );
 

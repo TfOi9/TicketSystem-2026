@@ -1,10 +1,49 @@
 #include "../../include/system/ticket.hpp"
 #include "../../include/utils/validator.hpp"
-#include "command/command.hpp"
+#include "../../include/command/command.hpp"
+#include "../../include/system/order.hpp"
+#include "../../include/utils/fixed_string.hpp"
+#include "../../include/result/result.hpp"
+#include <memory>
 #include <optional>
 #include <sstream>
 
 namespace sjtu {
+
+CompleteTicket TicketSystem::complete(const Ticket& ticket) {
+    CompleteTicket t {
+        .train_id_ = ticket.train_id_,
+        .start_station_ = FixedString<40>(train_.station_name(ticket.start_station_)),
+        .end_station_ = FixedString<40>(train_.station_name(ticket.end_station_)),
+        .departure_date_ = ticket.departure_date_,
+        .departure_time_ = ticket.departure_time_,
+        .arrival_date_ = ticket.arrival_date_,
+        .arrival_time_ = ticket.arrival_time_,
+        .duration_ = ticket.duration_,
+        .price_ = ticket.price_,
+        .seat_ = ticket.seat_
+    };
+    return t;
+}
+
+CompleteOrder TicketSystem::complete(const Order& order) {
+    CompleteOrder o {
+        .info_ = order.info_,
+        .status_ = order.status_,
+        .ticket_ = complete(order.ticket_)
+    };
+    return o;
+}
+
+CompleteTransferTicket TicketSystem::complete(const TransferTicket& transfer) {
+    CompleteTransferTicket t {
+        .first_ticket_ = complete(transfer.first_ticket_),
+        .second_ticket_ = complete(transfer.second_ticket_),
+        .price_ = transfer.price(),
+        .duration_ = transfer.duration()
+    };
+    return t;
+}
 
 TicketSystem::~TicketSystem() {
     // std::cerr << "ots = " << order_timestamp_ << std::endl;
@@ -189,138 +228,137 @@ void TicketSystem::run(const volatile std::sig_atomic_t* signal_status) {
     }
 }
 
-std::string TicketSystem::handle(const Command &command) {
+std::unique_ptr<Result> TicketSystem::handle(const Command &command) {
     if (cmd_) delete cmd_;
     cmd_ = new Command(command);
-    std::stringstream ret;
+    Result *res = nullptr;
     std::string cmd = cmd_->cmd();
     if (cmd == "add_user") {
         if (!cmd_->check("cupnmg", "")) {
-            ret << "-1\n";
+            res = new FailureResult();
         }
         else {
-            std::cerr << "To add user\n";
-            add_user(ret);
+            add_user(true, &res);
         }
     }
     else if (cmd == "login") {
         if (!cmd_->check("up", "")) {
-            ret << "-1\n";
+            res = new FailureResult();
         }
         else {
-            login(ret);
+            login(true, &res);
         }
     }
     else if (cmd == "logout") {
         if (!cmd_->check("u", "")) {
-            ret << "-1\n";
+            res = new FailureResult();
         }
         else {
-            logout(ret);
+            logout(true, &res);
         }
     }
     else if (cmd == "query_profile") {
         if (!cmd_->check("cu", "")) {
-            ret << "-1\n";
+            res = new FailureResult();
         }
         else {
-            query_profile(ret);
+            query_profile(true, &res);
         }
     }
     else if (cmd == "modify_profile") {
         if (!cmd_->check("cu", "pnmg")) {
-            // std::cerr << "bad check\n";
-            ret << "-1\n";
+            res = new FailureResult();
         }
         else {
-            // std::cerr << "modify\n";
-            modify_profile(ret);
+            modify_profile(true, &res);
         }
     }
     else if (cmd == "add_train") {
         if (!cmd_->check("inmspxtody", "")) {
-            ret << "-1\n";
+            res = new FailureResult();
         }
         else {
-            add_train(ret);
+            add_train(true, &res);
         }
     }
     else if (cmd == "delete_train") {
         if (!cmd_->check("i", "")) {
-            ret << "-1\n";
+            res = new FailureResult();
         }
         else {
-            delete_train(ret);
+            delete_train(true, &res);
         }
     }
     else if (cmd == "release_train") {
         if (!cmd_->check("i", "")) {
-            ret << "-1\n";
+            res = new FailureResult();
         }
         else {
-            release_train(ret);
+            release_train(true, &res);
         }
     }
     else if (cmd == "query_train") {
         if (!cmd_->check("id", "")) {
-            ret << "-1\n";
+            res = new FailureResult();
         }
         else {
-            query_train();
+            query_train(true, &res);
         }
     }
     else if (cmd == "query_ticket") {
         if (!cmd_->check("std", "p")) {
-            ret << "-1\n";
+            res = new FailureResult();
         }
         else {
-            query_ticket(ret);
+            query_ticket(true, &res);
         }
     }
     else if (cmd == "query_transfer") {
         if (!cmd_->check("std", "p")) {
-            ret << "-1\n";
+            res = new FailureResult();
         }
         else {
-            query_transfer(ret);
+            query_transfer(true, &res);
         }
     }
     else if (cmd == "buy_ticket") {
         if (!cmd_->check("uidnft", "q")) {
-            ret << "-1\n";
+            res = new FailureResult();
         }
         else {
-            buy_ticket(ret);
+            buy_ticket(true, &res);
         }
     }
     else if (cmd == "query_order") {
         if (!cmd_->check("u", "")) {
-            ret << "-1\n";
+            res = new FailureResult();
         }
         else {
-            query_order(ret);
+            query_order(true, &res);
         }
     }
     else if (cmd == "refund_ticket") {
         if (!cmd_->check("u", "n")) {
-            ret << "-1\n";
+            res = new FailureResult();
         }
         else {
-            refund_ticket(ret);
+            refund_ticket(true, &res);
         }
     }
     else if (cmd == "clean") {
         if (!cmd_->check("", "")) {
-            ret << "-1\n";
+            res = new FailureResult();
         }
         else {
             clear();
+            res = new SuccessResult();
         }
     }
     else {
-        ret << "-1\n";
+        res = new FailureResult();
     }
-    return ret.str();
+
+    return std::unique_ptr<Result>(res);
 }
 
 void TicketSystem::flush() {
@@ -331,97 +369,174 @@ void TicketSystem::flush() {
     order_.flush();
 }
 
-void TicketSystem::add_user(std::ostream& os) {
+void TicketSystem::add_user(bool pack, Result **res) {
     // std::cout << "add_user\n";
     int ret = 0;
     if (!verify_username(cmd_->arg('u')) || !verify_password(cmd_->arg('p'))
         || !verify_chinese_name(cmd_->arg('n')) || !verify_email(cmd_->arg('m'))) {
-        os << "-1\n";
+        if (pack) {
+            std::cerr << "bad args\n";
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     if (user_.empty()) {
+        std::cerr << "user emp\n";
         ret = user_.add_user("", cmd_->arg('u'), cmd_->arg('p'), cmd_->arg('n'), cmd_->arg('m'), 10);
     }
     else {
         int g = verify_privilege(cmd_->arg('g'));
         if (g == -1 || !verify_username(cmd_->arg('c'))) {
+            std::cerr << "bad g\n";
+            if (pack) {
+                if (res) *res = new FailureResult();
+                return;
+            }
             std::cout << "-1\n";
             return;
         }
         // std::cerr << "add_user " << g << std::endl;
         ret = user_.add_user(cmd_->arg('c'), cmd_->arg('u'), cmd_->arg('p'), cmd_->arg('n'), cmd_->arg('m'), g);
     }
-    os << ret << '\n';
+    if (pack) {
+        std::cerr << "packed\n";
+        if (!ret) {
+            std::cerr << "success\n";
+            if (res) *res = new SuccessResult();
+        }
+        else {
+            if (res) *res = new FailureResult();
+        }
+        return;
+    }
+    std::cout << ret << '\n';
 }
 
-void TicketSystem::login(std::ostream& os) {
+void TicketSystem::login(bool pack, Result **res) {
     // std::cout << "login\n";
     int ret = 0;
     if (!verify_username(cmd_->arg('u')) || !verify_password(cmd_->arg('p'))) {
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     ret = user_.login(cmd_->arg('u'), cmd_->arg('p'));
-    os << ret << '\n';
+    if (pack) {
+            if (!ret) {
+                if (res) *res = new SuccessResult();
+            }
+            else {
+                if (res) *res = new FailureResult();
+            }
+        return;
+    }
+    std::cout << ret << '\n';
 }
 
-void TicketSystem::logout(std::ostream& os) {
+void TicketSystem::logout(bool pack, Result **res) {
     // std::cout << "logout\n";
     int ret = 0;
     if (!verify_username(cmd_->arg('u'))) {
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     ret = user_.logout(cmd_->arg('u'));
-    os << ret << '\n';
+    if (pack) {
+            if (!ret) {
+                if (res) *res = new SuccessResult();
+            }
+            else {
+                if (res) *res = new FailureResult();
+            }
+        return;
+    }
+    std::cout << ret << '\n';
 }
 
-void TicketSystem::query_profile(std::ostream& os) {
+void TicketSystem::query_profile(bool pack, Result **res) {
     // std::cout << "query_profile\n";
     if (!verify_username(cmd_->arg('c')) || !verify_username(cmd_->arg('u'))) {
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     auto profile = user_.query_profile(cmd_->arg('c'), cmd_->arg('u'));
     if (profile == std::nullopt) {
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
     }
     else {
-        os << profile->username() << " " << profile->name() << " " << profile->email() << " " << profile->privilege() << "\n";
+        if (pack) {
+            if (res) *res = new ProfileResult(profile->username(), profile->name(), profile->email(), profile->privilege());
+            return;
+        }
+        std::cout << profile->username() << " " << profile->name() << " " << profile->email() << " " << profile->privilege() << "\n";
     }
 }
 
-void TicketSystem::modify_profile(std::ostream& os) {
+void TicketSystem::modify_profile(bool pack, Result **res) {
     // std::cerr << "modify_profile\n";
     // std::cerr << cmd_->arg('c') << " " << cmd_->arg('u') << std::endl;
     if (!verify_username(cmd_->arg('c')) || !verify_username(cmd_->arg('u'))) {
         // std::cerr << "bad username\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     if (!cmd_->arg('p').empty() && !verify_password(cmd_->arg('p'))) {
         // std::cerr << "bad pwd\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     if (!cmd_->arg('n').empty() && !verify_chinese_name(cmd_->arg('n'))) {
         // std::cerr << "bad name\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     if (!cmd_->arg('m').empty() && !verify_email(cmd_->arg('m'))) {
         // std::cerr << "bad email\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     int g = -1;
     if (!cmd_->arg('g').empty() && (g = verify_privilege(cmd_->arg('g'))) == -1) {
         // std::cerr << "bad g\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
-    }
-    if (cmd_->arg('g').empty()) {
-        
     }
     // std::cerr << "g = " << g << std::endl;
     auto profile = user_.modify_profile(cmd_->arg('c'), cmd_->arg('u'), cmd_->arg('p'),
@@ -429,18 +544,30 @@ void TicketSystem::modify_profile(std::ostream& os) {
     // std::cerr << "test\n";
     if (profile == std::nullopt) {
         // std::cerr << "bad modify\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
     }
     else {
-        os << profile->username() << " " << profile->name() << " " << profile->email() << " " << profile->privilege() << "\n";
+        if (pack) {
+            if (res) *res = new ProfileResult(profile->username(), profile->name(), profile->email(), profile->privilege());
+            return;
+        }
+        std::cout << profile->username() << " " << profile->name() << " " << profile->email() << " " << profile->privilege() << "\n";
     }
 }
 
-void TicketSystem::add_train(std::ostream& os) {
-    // os << "add_train\n";
+void TicketSystem::add_train(bool pack, Result **res) {
+    // std::cout << "add_train\n";
     Train train;
     if (!verify_train_name(cmd_->arg('i'))) {
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     train.trainID_ = FixedString<20>(cmd_->arg('i'));
@@ -449,12 +576,20 @@ void TicketSystem::add_train(std::ostream& os) {
     }
     catch(...) {
         // std::cerr << "bad name\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     if (train.stationNum_ < 2 || train.stationNum_ > 100) {
         // std::cerr << "bad station num\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     try {
@@ -462,25 +597,41 @@ void TicketSystem::add_train(std::ostream& os) {
     }
     catch(...) {
         // std::cerr << "bad seat num\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     if (train.seatNum_ > 100000) {
         // std::cerr << "too many seats\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     sjtu::vector<std::string> stations = separate_by_pipe(cmd_->arg('s'));
     if (stations.size() != train.stationNum_) {
         // std::cerr << "bad station str\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     for (int i = 0; i < train.stationNum_; i++) {
         std::string str = stations[i];
         if (!verify_station_name(str)) {
             // std::cerr << "some bad station name\n";
-            os << "-1\n";
+            if (pack) {
+                if (res) *res = new FailureResult();
+                return;
+            }
+            std::cout << "-1\n";
             return;
         }
         int station_id = train_.add_station(str);
@@ -489,7 +640,11 @@ void TicketSystem::add_train(std::ostream& os) {
     sjtu::vector<std::string> prices = separate_by_pipe(cmd_->arg('p'));
     if (prices.size() != train.stationNum_ - 1) {
         // std::cerr << "bad price str\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     try {
@@ -499,7 +654,11 @@ void TicketSystem::add_train(std::ostream& os) {
     }
     catch(...) {
         // std::cerr << "some bad prices\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     try {
@@ -507,13 +666,21 @@ void TicketSystem::add_train(std::ostream& os) {
     }
     catch(...) {
         // std::cerr << "bad time\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     sjtu::vector<std::string> travelTimes = separate_by_pipe(cmd_->arg('t'));
     if (travelTimes.size() != train.stationNum_ - 1) {
         // std::cerr << "bad travel time str\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     try {
@@ -523,13 +690,21 @@ void TicketSystem::add_train(std::ostream& os) {
     }
     catch(...) {
         // std::cerr << "some bad travel times\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     if (train.stationNum_ == 2) {
         if (cmd_->arg('o') != "_") {
             // std::cerr << "o_\n";
-            os << "-1\n";
+            if (pack) {
+                if (res) *res = new FailureResult();
+                return;
+            }
+            std::cout << "-1\n";
             return;
         }
     }
@@ -537,7 +712,11 @@ void TicketSystem::add_train(std::ostream& os) {
         sjtu::vector<std::string> stopoverTimes = separate_by_pipe(cmd_->arg('o'));
         if (stopoverTimes.size() != train.stationNum_ - 2) {
             // std::cerr << "bad stopover times str\n";
-            os << "-1\n";
+            if (pack) {
+                if (res) *res = new FailureResult();
+                return;
+            }
+            std::cout << "-1\n";
             return;
         }
         try {
@@ -548,13 +727,21 @@ void TicketSystem::add_train(std::ostream& os) {
         }
         catch(...) {
             // std::cerr << "some bad stopover times\n";
-            os << "-1\n";
+            if (pack) {
+                if (res) *res = new FailureResult();
+                return;
+            }
+            std::cout << "-1\n";
             return;
         }
     }
     if (cmd_->arg('d').size() != 11 || cmd_->arg('d')[5] != '|') {
         // std::cerr << "bad date syntax\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     try {
@@ -563,19 +750,31 @@ void TicketSystem::add_train(std::ostream& os) {
     }
     catch(...) {
         // std::cerr << "bad date\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     if (train.startSaleDate_.month_ < 6 || train.startSaleDate_.month_ > 8 ||
             train.endSaleDate_.month_ < 6 || train.endSaleDate_.month_ > 8) {
         // std::cerr << "bad month\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     std::string y = cmd_->arg('y');
     if (y.size() != 1 || y[0] < 'A' || y[0] > 'Z') {
         // std::cerr << "bad type\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     train.type_ = y[0];
@@ -590,34 +789,73 @@ void TicketSystem::add_train(std::ostream& os) {
         }
     }
     int ret = train_.add_train(train);
-    os << ret << "\n";
+    if (pack) {
+            if (!ret) {
+                if (res) *res = new SuccessResult();
+            }
+            else {
+                if (res) *res = new FailureResult();
+            }
+        return;
+    }
+    std::cout << ret << "\n";
 }
 
-void TicketSystem::delete_train(std::ostream& os) {
-    // os << "delete_train\n";
+void TicketSystem::delete_train(bool pack, Result **res) {
+    // std::cout << "delete_train\n";
     if (!verify_train_name(cmd_->arg('i'))) {
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     int ret = train_.delete_train(cmd_->arg('i'));
-    os << ret << "\n";
+    if (pack) {
+            if (!ret) {
+                if (res) *res = new SuccessResult();
+            }
+            else {
+                if (res) *res = new FailureResult();
+            }
+        return;
+    }
+    std::cout << ret << "\n";
 }
 
-void TicketSystem::release_train(std::ostream& os) {
-    // os << "release_train\n";
+void TicketSystem::release_train(bool pack, Result **res) {
+    // std::cout << "release_train\n";
     if (!verify_train_name(cmd_->arg('i'))) {
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     int ret = train_.release_train(cmd_->arg('i'));
-    os << ret << "\n";
+    if (pack) {
+            if (!ret) {
+                if (res) *res = new SuccessResult();
+            }
+            else {
+                if (res) *res = new FailureResult();
+            }
+        return;
+    }
+    std::cout << ret << "\n";
 }
 
-void TicketSystem::query_train(std::ostream& os) {
-    // os << "query_train\n";
+void TicketSystem::query_train(bool pack, Result **res) {
+    // std::cout << "query_train\n";
     if (!verify_train_name(cmd_->arg('i'))) {
         // std::cerr << "bad train name\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     date d;
@@ -626,56 +864,102 @@ void TicketSystem::query_train(std::ostream& os) {
     }
     catch(...) {
         // std::cerr << "bad date syntax\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     if (d.month_ < 6 || d.month_ > 8) {
         // std::cerr << "bad month\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
-    auto res = train_.query_train(cmd_->arg('i'));
-    if (!res.has_value()) {
+    auto ress = train_.query_train(cmd_->arg('i'));
+    if (!ress.has_value()) {
         // std::cerr << "train not found\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
-    Train train = res.value();
+    Train train = ress.value();
     if (int(d) < int(train.startSaleDate_) || int(d) > int(train.endSaleDate_)) {
         // std::cerr << "no train at that date\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
-    os << train.trainID_.str() << " " << train.type_ << "\n";
+    if (pack) {
+        TrainInfo info{};
+        info.train_id_ = train.trainID_;
+        info.type_ = train.type_;
+        info.station_num_ = train.stationNum_;
+        info.query_date_ = d;
+        int price = 0;
+        for (int i = 0; i < train.stationNum_; i++) {
+            TrainStationInfo station{};
+            station.station_name_ = FixedString<40>(train_.station_name(train.stations_[i]));
+            station.arrival_time_ = train.arrivalTimes_[i];
+            station.leaving_time_ = train.arrivalTimes_[i] + train.stopoverTimes_[i];
+            station.price_ = price;
+            station.seat_ = (i < train.stationNum_ - 1) ? train.seats_[int(d)][i] : -1;
+            station.has_arrival_ = (i != 0);
+            station.has_leaving_ = (i < train.stationNum_ - 1);
+            info.stations_[i] = station;
+            price += train.prices_[i];
+        }
+        if (res) *res = new TrainResult(info);
+        return;
+    }
+    std::cout << train.trainID_.str() << " " << train.type_ << "\n";
     int price = 0;
     for (int i = 0; i < train.stationNum_; i++) {
         std::string station_name = train_.station_name(train.stations_[i]);
         time arrival_time = train.arrivalTimes_[i];
         time leaving_time = train.arrivalTimes_[i] + train.stopoverTimes_[i];
-        os << station_name << " ";
-        if (i) print_time_date(d, arrival_time, os);
-        else os << "xx-xx xx:xx";
-        os << " -> ";
-        if (i < train.stationNum_ - 1) print_time_date(d, leaving_time, os);
-        else os << "xx-xx xx:xx";
-        os << " " << price << " ";
-        if (i < train.stationNum_ - 1) os << train.seats_[int(d)][i];
-        else os << "x";
-        os << "\n";
+        std::cout << station_name << " ";
+        if (i) print_time_date(d, arrival_time, std::cout);
+        else std::cout << "xx-xx xx:xx";
+        std::cout << " -> ";
+        if (i < train.stationNum_ - 1) print_time_date(d, leaving_time, std::cout);
+        else std::cout << "xx-xx xx:xx";
+        std::cout << " " << price << " ";
+        if (i < train.stationNum_ - 1) std::cout << train.seats_[int(d)][i];
+        else std::cout << "x";
+        std::cout << "\n";
         price += train.prices_[i];
     }
 }
 
-void TicketSystem::query_ticket(std::ostream& os) {
-    // os << "query_ticket\n";
+void TicketSystem::query_ticket(bool pack, Result **res) {
+    // std::cout << "query_ticket\n";
     if (!verify_station_name(cmd_->arg('s')) || !verify_station_name(cmd_->arg('t'))) {
         // std::cerr << "bad station name\n";
-        os << "0\n";
+        if (pack) {
+            if (res) *res = new TicketResult(sjtu::vector<CompleteTicket>());
+            return;
+        }
+        std::cout << "0\n";
         return;
     }
     if (cmd_->arg('s') == cmd_->arg('t')) {
         // std::cerr << "same station\n";
-        os << "0\n";
+        if (pack) {
+            if (res) *res = new TicketResult(sjtu::vector<CompleteTicket>());
+            return;
+        }
+        std::cout << "0\n";
         return;
     }
     date d;
@@ -684,17 +968,29 @@ void TicketSystem::query_ticket(std::ostream& os) {
     }
     catch(...) {
         // std::cerr << "bad date syntax\n";
-        os << "0\n";
+        if (pack) {
+            if (res) *res = new TicketResult(sjtu::vector<CompleteTicket>());
+            return;
+        }
+        std::cout << "0\n";
         return;
     }
     if (d.month_ < 6 || d.month_ > 9 || d.month_ == 9 && d.day_ > 3) {
         // std::cerr << "no train at date\n";
-        os << "0\n";
+        if (pack) {
+            if (res) *res = new TicketResult(sjtu::vector<CompleteTicket>());
+            return;
+        }
+        std::cout << "0\n";
         return;
     }
     if (!cmd_->arg('p').empty() && cmd_->arg('p') != "time" && cmd_->arg('p') != "cost") {
         // std::cerr << "bad sorting protocol\n";
-        os << "0\n";
+        if (pack) {
+            if (res) *res = new TicketResult(sjtu::vector<CompleteTicket>());
+            return;
+        }
+        std::cout << "0\n";
         return;
     }
     sjtu::vector<TrainPosition> start_trains, end_trains;
@@ -702,7 +998,11 @@ void TicketSystem::query_ticket(std::ostream& os) {
     int end_query = train_.query_station(cmd_->arg('t'), end_trains);
     if (start_query || end_query) {
         // std::cerr << "bad query\n";
-        os << "0\n";
+        if (pack) {
+            if (res) *res = new TicketResult(sjtu::vector<CompleteTicket>());
+            return;
+        }
+        std::cout << "0\n";
         return;
     }
     start_trains.sort(TrainPositionCompare());
@@ -762,27 +1062,43 @@ void TicketSystem::query_ticket(std::ostream& os) {
     else {
         tickets.sort(TicketDurationCompare());
     }
-    os << tickets.size() << "\n";
+    if (pack) {
+        sjtu::vector<CompleteTicket> packed_tickets;
+        for (int i = 0; i < tickets.size(); i++) {
+            packed_tickets.push_back(complete(tickets[i]));
+        }
+        if (res) *res = new TicketResult(packed_tickets);
+        return;
+    }
+    std::cout << tickets.size() << "\n";
     for (int i = 0; i < tickets.size(); i++) {
         Ticket& ticket = tickets[i];
-        os << ticket.train_id_ << " " << cmd_->arg('s') << " ";
-        print_time_date(ticket.departure_date_, ticket.departure_time_, os, true);
-        os << " -> " << cmd_->arg('t') << " ";
-        print_time_date(ticket.arrival_date_, ticket.arrival_time_, os, true);
-        os << " " << ticket.price_ << " " << ticket.seat_ << "\n";
+        std::cout << ticket.train_id_ << " " << cmd_->arg('s') << " ";
+        print_time_date(ticket.departure_date_, ticket.departure_time_, std::cout, true);
+        std::cout << " -> " << cmd_->arg('t') << " ";
+        print_time_date(ticket.arrival_date_, ticket.arrival_time_, std::cout, true);
+        std::cout << " " << ticket.price_ << " " << ticket.seat_ << "\n";
     }
 }
 
-void TicketSystem::query_transfer(std::ostream& os) {
-    // os << "query_transfer\n";
+void TicketSystem::query_transfer(bool pack, Result **res) {
+    // std::cout << "query_transfer\n";
     if (!verify_station_name(cmd_->arg('s')) || !verify_station_name(cmd_->arg('t'))) {
         // std::cerr << "bad station name\n";
-        os << "0\n";
+        if (pack) {
+            if (res) *res = new TransferResult(sjtu::vector<CompleteTransferTicket>());
+            return;
+        }
+        std::cout << "0\n";
         return;
     }
     if (cmd_->arg('s') == cmd_->arg('t')) {
         // std::cerr << "same station\n";
-        os << "0\n";
+        if (pack) {
+            if (res) *res = new TransferResult(sjtu::vector<CompleteTransferTicket>());
+            return;
+        }
+        std::cout << "0\n";
         return;
     }
     date d;
@@ -791,17 +1107,29 @@ void TicketSystem::query_transfer(std::ostream& os) {
     }
     catch(...) {
         // std::cerr << "bad date syntax\n";
-        os << "0\n";
+        if (pack) {
+            if (res) *res = new TransferResult(sjtu::vector<CompleteTransferTicket>());
+            return;
+        }
+        std::cout << "0\n";
         return;
     }
     if (d.month_ < 6 || d.month_ > 9 || d.month_ == 9 && d.day_ > 3) {
         // std::cerr << "no train at date\n";
-        os << "0\n";
+        if (pack) {
+            if (res) *res = new TransferResult(sjtu::vector<CompleteTransferTicket>());
+            return;
+        }
+        std::cout << "0\n";
         return;
     }
     if (!cmd_->arg('p').empty() && cmd_->arg('p') != "time" && cmd_->arg('p') != "cost") {
         // std::cerr << "bad sorting protocol\n";
-        os << "0\n";
+        if (pack) {
+            if (res) *res = new TransferResult(sjtu::vector<CompleteTransferTicket>());
+            return;
+        }
+        std::cout << "0\n";
         return;
     }
     sjtu::vector<TrainPosition> start_trains, end_trains;
@@ -811,7 +1139,11 @@ void TicketSystem::query_transfer(std::ostream& os) {
     int end_station = train_.station_id(cmd_->arg('t'));
     if (start_query || end_query) {
         // std::cerr << "bad query\n";
-        os << "0\n";
+        if (pack) {
+            if (res) *res = new TransferResult(sjtu::vector<CompleteTransferTicket>());
+            return;
+        }
+        std::cout << "0\n";
         return;
     }
     int d_val = int(d);
@@ -916,7 +1248,11 @@ void TicketSystem::query_transfer(std::ostream& os) {
         }
     }
     if (tickets.empty()) {
-        os << "0\n";
+        if (pack) {
+            if (res) *res = new TransferResult(sjtu::vector<CompleteTransferTicket>());
+            return;
+        }
+        std::cout << "0\n";
         return;
     }
     bool by_cost = (cmd_->arg('p') == "cost");
@@ -926,11 +1262,17 @@ void TicketSystem::query_transfer(std::ostream& os) {
     else {
         tickets.sort(TransferTicketDurationCompare());
     }
+    if (pack) {
+        sjtu::vector<CompleteTransferTicket> packed_transfers;
+        packed_transfers.push_back(complete(tickets[0]));
+        if (res) *res = new TransferResult(packed_transfers);
+        return;
+    }
     auto print_ticket = [&](std::ostream& os, const Ticket& ticket) {
         os << ticket.train_id_ << " " << train_.station_name(ticket.start_station_) << " ";
-        print_time_date(ticket.departure_date_, ticket.departure_time_, os, true);
+        print_time_date(ticket.departure_date_, ticket.departure_time_, std::cout, true);
         os << " -> " << train_.station_name(ticket.end_station_) << " ";
-        print_time_date(ticket.arrival_date_, ticket.arrival_time_, os, true);
+        print_time_date(ticket.arrival_date_, ticket.arrival_time_, std::cout, true);
         os << " " << ticket.price_ << " " << ticket.seat_ << "\n";
     };
     // for (int i = 0; i < tickets.size(); i++) {
@@ -939,37 +1281,57 @@ void TicketSystem::query_transfer(std::ostream& os) {
     //     // std::cerr << "[transfer_sorted " << i << "] ";
     //     print_ticket(// std::cerr, tickets[i].second_ticket_);
     // }
-    print_ticket(os, tickets[0].first_ticket_);
-    print_ticket(os, tickets[0].second_ticket_);
+    print_ticket(std::cout, tickets[0].first_ticket_);
+    print_ticket(std::cout, tickets[0].second_ticket_);
 }
 
-void TicketSystem::buy_ticket(std::ostream& os) {
-    // os << "buy_ticket\n";
+void TicketSystem::buy_ticket(bool pack, Result **res) {
+    // std::cout << "buy_ticket\n";
     if (!verify_username(cmd_->arg('u'))) {
         // std::cerr << "bad user name\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     if (!user_.logged_in(cmd_->arg('u'))) {
         // std::cerr << "user not logged in\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     if (!verify_train_name(cmd_->arg('i'))) {
         // std::cerr << "bad train name\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     auto ans = train_.query_train(cmd_->arg('i'));
     if (ans == std::nullopt) {
         // std::cerr << "train not found\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     Train& train = ans.value();
     if (!train.released_) {
         // std::cerr << "train not released\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     date d;
@@ -978,14 +1340,22 @@ void TicketSystem::buy_ticket(std::ostream& os) {
     }
     catch(...) {
         // std::cerr << "bad date\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     std::string from = cmd_->arg('f');
     std::string to = cmd_->arg('t');
     if (!verify_station_name(from) || !verify_station_name(to)) {
         // std::cerr << "bad station name\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     int n;
@@ -994,12 +1364,20 @@ void TicketSystem::buy_ticket(std::ostream& os) {
     }
     catch(...) {
         // std::cerr << "bad number\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     if (n <= 0) {
         // std::cerr << "n not positive\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     bool accept_queue;
@@ -1011,14 +1389,22 @@ void TicketSystem::buy_ticket(std::ostream& os) {
     }
     else {
         // std::cerr << "bad queue acceptance\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     int from_id = train_.station_id(from);
     int to_id = train_.station_id(to);
     if (from_id == -1 || to_id == -1) {
         // std::cerr << "station not found\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     int spos = -1, epos = -1;
@@ -1032,13 +1418,21 @@ void TicketSystem::buy_ticket(std::ostream& os) {
     }
     if (spos == -1 || epos == -1 || spos >= epos) {
         // std::cerr << "station not on train or bad sequence\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     int departure_date = int(d) - (train.arrivalTimes_[spos] + train.stopoverTimes_[spos]).day_offset_;
     if (departure_date < int(train.startSaleDate_) || departure_date > int(train.endSaleDate_)) {
         // std::cerr << "outside selling period\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     int min_seats = train.seatNum_, price = 0;
@@ -1065,11 +1459,19 @@ void TicketSystem::buy_ticket(std::ostream& os) {
             order_.add_order(order);
             order_.add_pending_order(order);
             order_timestamp_++;
-            os << "queue\n";
+            if (pack) {
+                if (res) *res = new SuccessResult();
+                return;
+            }
+            std::cout << "queue\n";
         }
         else {
             // std::cerr << "ticket not enough\n";
-            os << "-1\n";
+            if (pack) {
+                if (res) *res = new FailureResult();
+                return;
+            }
+            std::cout << "-1\n";
             return;
         }
     }
@@ -1091,61 +1493,89 @@ void TicketSystem::buy_ticket(std::ostream& os) {
         Order order{order_info, TicketStatus::Purchased, ticket};
         order_.add_order(order);
         order_timestamp_++;
-        os << total_price << "\n";
+        if (pack) {
+            if (res) *res = new SuccessResult();
+            return;
+        }
+        std::cout << total_price << "\n";
     }
 }
 
-void TicketSystem::query_order(std::ostream& os) {
-    // os << "query_order\n";
+void TicketSystem::query_order(bool pack, Result **res) {
+    // std::cout << "query_order\n";
     if (!verify_username(cmd_->arg('u'))) {
         // std::cerr << "bad username\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     if (!user_.logged_in(cmd_->arg('u'))) {
         // std::cerr << "user not logged in\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     sjtu::vector<Order> orders;
     order_.query_order(cmd_->arg('u'), orders);
     orders.sort(OrderTimeReverseCompare());
-    os << orders.size() << "\n";
+    if (pack) {
+        sjtu::vector<CompleteOrder> packed_orders;
+        for (int i = 0; i < orders.size(); i++) {
+            packed_orders.push_back(complete(orders[i]));
+        }
+        if (res) *res = new OrderResult(packed_orders);
+        return;
+    }
+    std::cout << orders.size() << "\n";
     for (int i = 0; i < orders.size(); i++) {
         Order& order = orders[i];
         switch (order.status_) {
             case TicketStatus::Pending:
-                os << "[pending] "; break;
+                std::cout << "[pending] "; break;
             case TicketStatus::Purchased:
-                os << "[success] "; break;
+                std::cout << "[success] "; break;
             case TicketStatus::Refunded:
-                os << "[refunded] "; break;
+                std::cout << "[refunded] "; break;
             default:
                 // std::cerr << "bad order\n";
-                os << "[invalid] ";
+                std::cout << "[invalid] ";
         }
-        os << order.ticket_.train_id_ << " ";
+        std::cout << order.ticket_.train_id_ << " ";
         std::string from = train_.station_name(order.ticket_.start_station_);
         std::string to = train_.station_name(order.ticket_.end_station_);
-        os << from << " ";
-        print_time_date(order.ticket_.departure_date_, order.ticket_.departure_time_, os, true);
-        os << " -> " << to << " ";
-        print_time_date(order.ticket_.arrival_date_, order.ticket_.arrival_time_, os, true);
-        os << " " << order.ticket_.price_ << " " << order.ticket_.seat_ << "\n";
+        std::cout << from << " ";
+        print_time_date(order.ticket_.departure_date_, order.ticket_.departure_time_, std::cout, true);
+        std::cout << " -> " << to << " ";
+        print_time_date(order.ticket_.arrival_date_, order.ticket_.arrival_time_, std::cout, true);
+        std::cout << " " << order.ticket_.price_ << " " << order.ticket_.seat_ << "\n";
         // // std::cerr << order.info_.purchase_timestamp_ << "\n";
     }
 }
 
-void TicketSystem::refund_ticket(std::ostream& os) {
-    // os << "refund_ticket\n";
+void TicketSystem::refund_ticket(bool pack, Result **res) {
+    // std::cout << "refund_ticket\n";
     if (!verify_username(cmd_->arg('u'))) {
         // std::cerr << "bad username\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     if (!user_.logged_in(cmd_->arg('u'))) {
         // std::cerr << "user not logged in\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     int n = 1;
@@ -1155,12 +1585,20 @@ void TicketSystem::refund_ticket(std::ostream& os) {
         }
         catch(...) {
             // std::cerr << "bad number\n";
-            os << "-1\n";
+            if (pack) {
+                if (res) *res = new FailureResult();
+                return;
+            }
+            std::cout << "-1\n";
             return;
         }
         if (n <= 0) {
             // std::cerr << "n not positive\n";
-            os << "-1\n";
+            if (pack) {
+                if (res) *res = new FailureResult();
+                return;
+            }
+            std::cout << "-1\n";
             return;
         }
     }
@@ -1169,13 +1607,21 @@ void TicketSystem::refund_ticket(std::ostream& os) {
     orders.sort(OrderTimeReverseCompare());
     if (n > orders.size()) {
         // std::cerr << "order not found\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     Order& order = orders[n - 1];
     if (order.status_ == TicketStatus::Refunded) {
         // std::cerr << "order already refunded\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     else if (order.status_ == TicketStatus::Pending) {
@@ -1244,17 +1690,25 @@ void TicketSystem::refund_ticket(std::ostream& os) {
     }
     else {
         // std::cerr << "unexpected invalid order\n";
-        os << "-1\n";
+        if (pack) {
+            if (res) *res = new FailureResult();
+            return;
+        }
+        std::cout << "-1\n";
         return;
     }
     order_.delete_order(order);
     order.status_ = TicketStatus::Refunded;
     order_.add_order(order);
-    os << "0\n";
+    if (pack) {
+        if (res) *res = new SuccessResult();
+        return;
+    }
+    std::cout << "0\n";
 }
 
 void TicketSystem::clear() {
-    // os << "clear\n";
+    // std::cout << "clear\n";
     user_.clear();
     train_.clear();
     order_.clear();

@@ -4,11 +4,13 @@
 #include <csignal>
 #include <fstream>
 #include <iostream>
+#include <memory>
 
 #include "user.hpp"
 #include "train.hpp"
 #include "order.hpp"
 #include "../command/command.hpp"
+#include "../result/result.hpp"
 
 namespace sjtu {
 
@@ -41,37 +43,43 @@ public:
 
     void run(const volatile std::sig_atomic_t* signal_status = nullptr);
 
-    std::string handle(const Command& command);
+    std::unique_ptr<Result> handle(const Command& command);
+
+    CompleteTicket complete(const Ticket& ticket);
+
+    CompleteOrder complete(const Order& order);
+
+    CompleteTransferTicket complete(const TransferTicket& transfer);
 
     void flush();
 
-    void add_user(std::ostream& os = std::cout);
+    void add_user(bool pack = false, Result **res = nullptr);
 
-    void login(std::ostream& os = std::cout);
+    void login(bool pack = false, Result **res = nullptr);
 
-    void logout(std::ostream& os = std::cout);
+    void logout(bool pack = false, Result **res = nullptr);
 
-    void query_profile(std::ostream& os = std::cout);
+    void query_profile(bool pack = false, Result **res = nullptr);
 
-    void modify_profile(std::ostream& os = std::cout);
+    void modify_profile(bool pack = false, Result **res = nullptr);
 
-    void add_train(std::ostream& os = std::cout);
+    void add_train(bool pack = false, Result **res = nullptr);
 
-    void delete_train(std::ostream& os = std::cout);
+    void delete_train(bool pack = false, Result **res = nullptr);
 
-    void release_train(std::ostream& os = std::cout);
+    void release_train(bool pack = false, Result **res = nullptr);
 
-    void query_train(std::ostream& os = std::cout);
+    void query_train(bool pack = false, Result **res = nullptr);
 
-    void query_ticket(std::ostream& os = std::cout);
+    void query_ticket(bool pack = false, Result **res = nullptr);
 
-    void query_transfer(std::ostream& os = std::cout);
+    void query_transfer(bool pack = false, Result **res = nullptr);
 
-    void buy_ticket(std::ostream& os = std::cout);
+    void buy_ticket(bool pack = false, Result **res = nullptr);
 
-    void query_order(std::ostream& os = std::cout);
+    void query_order(bool pack = false, Result **res = nullptr);
 
-    void refund_ticket(std::ostream& os = std::cout);
+    void refund_ticket(bool pack = false, Result **res = nullptr);
 
     void clear();
 

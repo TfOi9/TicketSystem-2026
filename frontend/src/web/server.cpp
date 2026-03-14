@@ -11,6 +11,7 @@
 
 #include "../../../include/system/ticket.hpp"
 #include "../../../include/command/command.hpp"
+#include "../../../include/result/result.hpp"
 
 QByteArray serializeCommandInfo(const sjtu::Command& cmd) {
     QByteArray payload;
@@ -56,10 +57,21 @@ int main(int argc, char **argv) {
         parseCommandInfo,
         [&](QTcpSocket* sock, const sjtu::Command& cmd) {
             std::cout << "Received command from client: cmd = " << cmd.cmd() << std::endl;
-            std::string res = system.handle(cmd);
-            std::cout << "The result is: " << res << std::endl;
-            QString msg = "[" + QString::number(cmd.timestamp()) + "] " + QString::fromStdString(res);
-            server.send(msg, sock);
+            std::unique_ptr<sjtu::Result> res = system.handle(cmd);
+            if (!res) {
+                return;
+            }
+            auto serialized = res->serialize();
+            QByteArray payload;
+            QDataStream out(&payload, QIODevice::WriteOnly);
+            out.setVersion(QDataStream::Qt_6_2);
+            out << static_cast<quint32>(res->type());
+            out.writeRawData(serialized.first, static_cast<int>(serialized.second));
+            delete[] serialized.first;
+
+            std::cout << "Sending result packet: type=" << static_cast<int>(res->type())
+                      << " size=" << payload.size() << std::endl;
+            server.sendPacket(sjtu::TCPServer::kResultMessageType, payload, sock);
         }
     );
 

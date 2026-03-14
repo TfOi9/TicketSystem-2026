@@ -11,13 +11,16 @@ int UserSystem::add_user(const std::string &cur_username, const std::string &use
     if (cur_username != "") {
         auto it = login_list_.find(FixedString<20>(cur_username));
         if (it == login_list_.end()) {
+            std::cerr << "not logged\n";
             return -1;
         }
         if (*(it->second) <= privilege) {
+            std::cerr << "bad p\n";
             return -1;
         }
     }
     if (user_map_.find(FixedString<20>(username)) != std::nullopt) {
+        std::cerr << "reg\n";
         return -1;
     }
     User new_user(username, password, name, email, privilege);

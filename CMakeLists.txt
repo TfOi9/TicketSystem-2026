@@ -21,6 +21,7 @@ include_directories(frontend/include)
 add_executable(
 	code
 	src/command/command.cpp src/command/token.cpp
+	src/result/result.cpp
 	src/system/order.cpp src/system/ticket.cpp src/system/train.cpp src/system/user.cpp
 	src/utils/time_date.cpp src/utils/validator.cpp
 	src/main.cpp
@@ -45,6 +46,7 @@ add_executable (
 	frontend/src/web/tlv/tlvpacket.cpp
 	frontend/src/web/tlv/tlvparser.cpp
 	src/command/command.cpp src/command/token.cpp
+	src/result/result.cpp
 	src/system/order.cpp src/system/ticket.cpp src/system/train.cpp src/system/user.cpp
 	src/utils/time_date.cpp src/utils/validator.cpp
 )
@@ -64,6 +66,7 @@ add_executable (
 	frontend/src/web/tlv/tlvpacket.cpp
 	frontend/src/web/tlv/tlvparser.cpp
 	src/command/command.cpp src/command/token.cpp
+	src/result/result.cpp
 	src/system/order.cpp src/system/ticket.cpp src/system/train.cpp src/system/user.cpp
 	src/utils/time_date.cpp src/utils/validator.cpp
 )
