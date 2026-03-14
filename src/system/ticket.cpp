@@ -947,7 +947,7 @@ void TicketSystem::query_ticket(bool pack, Result **res) {
     if (!verify_station_name(cmd_->arg('s')) || !verify_station_name(cmd_->arg('t'))) {
         // std::cerr << "bad station name\n";
         if (pack) {
-            if (res) *res = new TicketResult(sjtu::vector<CompleteTicket>());
+            if (res) *res = new FailureResult();
             return;
         }
         std::cout << "0\n";
@@ -956,7 +956,7 @@ void TicketSystem::query_ticket(bool pack, Result **res) {
     if (cmd_->arg('s') == cmd_->arg('t')) {
         // std::cerr << "same station\n";
         if (pack) {
-            if (res) *res = new TicketResult(sjtu::vector<CompleteTicket>());
+            if (res) *res = new FailureResult();
             return;
         }
         std::cout << "0\n";
@@ -969,8 +969,7 @@ void TicketSystem::query_ticket(bool pack, Result **res) {
     catch(...) {
         // std::cerr << "bad date syntax\n";
         if (pack) {
-            if (res) *res = new TicketResult(sjtu::vector<CompleteTicket>());
-            return;
+            if (res) *res = new FailureResult();
         }
         std::cout << "0\n";
         return;
@@ -978,7 +977,7 @@ void TicketSystem::query_ticket(bool pack, Result **res) {
     if (d.month_ < 6 || d.month_ > 9 || d.month_ == 9 && d.day_ > 3) {
         // std::cerr << "no train at date\n";
         if (pack) {
-            if (res) *res = new TicketResult(sjtu::vector<CompleteTicket>());
+            if (res) *res = new FailureResult();
             return;
         }
         std::cout << "0\n";
@@ -987,7 +986,7 @@ void TicketSystem::query_ticket(bool pack, Result **res) {
     if (!cmd_->arg('p').empty() && cmd_->arg('p') != "time" && cmd_->arg('p') != "cost") {
         // std::cerr << "bad sorting protocol\n";
         if (pack) {
-            if (res) *res = new TicketResult(sjtu::vector<CompleteTicket>());
+            if (res) *res = new FailureResult();
             return;
         }
         std::cout << "0\n";
@@ -999,7 +998,7 @@ void TicketSystem::query_ticket(bool pack, Result **res) {
     if (start_query || end_query) {
         // std::cerr << "bad query\n";
         if (pack) {
-            if (res) *res = new TicketResult(sjtu::vector<CompleteTicket>());
+            if (res) *res = new FailureResult();
             return;
         }
         std::cout << "0\n";
@@ -1086,7 +1085,7 @@ void TicketSystem::query_transfer(bool pack, Result **res) {
     if (!verify_station_name(cmd_->arg('s')) || !verify_station_name(cmd_->arg('t'))) {
         // std::cerr << "bad station name\n";
         if (pack) {
-            if (res) *res = new TransferResult(sjtu::vector<CompleteTransferTicket>());
+            if (res) *res = new FailureResult();
             return;
         }
         std::cout << "0\n";
@@ -1095,7 +1094,7 @@ void TicketSystem::query_transfer(bool pack, Result **res) {
     if (cmd_->arg('s') == cmd_->arg('t')) {
         // std::cerr << "same station\n";
         if (pack) {
-            if (res) *res = new TransferResult(sjtu::vector<CompleteTransferTicket>());
+            if (res) *res = new FailureResult();
             return;
         }
         std::cout << "0\n";
@@ -1108,7 +1107,7 @@ void TicketSystem::query_transfer(bool pack, Result **res) {
     catch(...) {
         // std::cerr << "bad date syntax\n";
         if (pack) {
-            if (res) *res = new TransferResult(sjtu::vector<CompleteTransferTicket>());
+            if (res) *res = new FailureResult();
             return;
         }
         std::cout << "0\n";
@@ -1117,7 +1116,7 @@ void TicketSystem::query_transfer(bool pack, Result **res) {
     if (d.month_ < 6 || d.month_ > 9 || d.month_ == 9 && d.day_ > 3) {
         // std::cerr << "no train at date\n";
         if (pack) {
-            if (res) *res = new TransferResult(sjtu::vector<CompleteTransferTicket>());
+            if (res) *res = new FailureResult();
             return;
         }
         std::cout << "0\n";
@@ -1126,7 +1125,7 @@ void TicketSystem::query_transfer(bool pack, Result **res) {
     if (!cmd_->arg('p').empty() && cmd_->arg('p') != "time" && cmd_->arg('p') != "cost") {
         // std::cerr << "bad sorting protocol\n";
         if (pack) {
-            if (res) *res = new TransferResult(sjtu::vector<CompleteTransferTicket>());
+            if (res) *res = new FailureResult();
             return;
         }
         std::cout << "0\n";
@@ -1140,7 +1139,7 @@ void TicketSystem::query_transfer(bool pack, Result **res) {
     if (start_query || end_query) {
         // std::cerr << "bad query\n";
         if (pack) {
-            if (res) *res = new TransferResult(sjtu::vector<CompleteTransferTicket>());
+            if (res) *res = new FailureResult();
             return;
         }
         std::cout << "0\n";
