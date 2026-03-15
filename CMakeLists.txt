@@ -51,6 +51,8 @@ add_executable (
 	src/utils/time_date.cpp src/utils/validator.cpp
 )
 
+target_link_libraries(server Qt6::Core Qt6::Widgets Qt6::Network)
+
 add_executable (
 	client
 	frontend/src/web/client.cpp
@@ -71,9 +73,18 @@ add_executable (
 	src/utils/time_date.cpp src/utils/validator.cpp
 )
 
-target_link_libraries(server Qt6::Core Qt6::Widgets Qt6::Network)
-
 target_link_libraries(client Qt6::Core Qt6::Widgets Qt6::Network)
+
+add_executable(
+	client_gui
+	frontend/src/client/main.cpp
+	frontend/include/client/top_bar.hpp
+	frontend/src/client/top_bar.cpp
+	frontend/include/client/main_window.hpp
+	frontend/src/client/main_window.cpp
+)
+
+target_link_libraries(client_gui Qt6::Core Qt6::Widgets Qt6::Network)
 
 add_executable(tlvpacket_test
 	test/tlv/tlvpacket_test.cpp
