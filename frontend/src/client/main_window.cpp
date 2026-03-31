@@ -58,6 +58,10 @@ MainWindow::MainWindow(QWidget *parent)
       topBar(nullptr),
       statusBarWidget(nullptr),
       stackedPanel(nullptr),
+    homePageWidget(nullptr),
+    ticketPageWidget(nullptr),
+    orderPageWidget(nullptr),
+    managePageWidget(nullptr),
       tcpClient(nullptr),
       udpClient(nullptr),
       discoveryProbeSocket(nullptr),
@@ -78,6 +82,8 @@ MainWindow::MainWindow(QWidget *parent)
 }
 
 void MainWindow::initalizeUI() {
+    setFixedSize(1240, 800);
+
     topBar = new TopBar(this);
     statusBarWidget = new StatusBar(this);
     setCentralWidget(new QWidget(this));
@@ -310,6 +316,30 @@ void MainWindow::onRegisterRequested() {
     }
 }
 
+void MainWindow::onQueryTicketRequested(const QString &fromStation, const QString &toStation, const QString &date) {
+    if (pendingAction != PendingAction::None) {
+        QMessageBox::information(this, "提示", "当前有请求正在处理中，请稍后再试。");
+        return;
+    }
+
+    if (fromStation.isEmpty() || toStation.isEmpty()) {
+        QMessageBox::warning(this, "查询失败", "出发站和到达站不能为空。");
+        return;
+    }
+    if (fromStation == toStation) {
+        QMessageBox::warning(this, "查询失败", "出发站和到达站不能相同。");
+        return;
+    }
+
+    const QString command = "query_ticket -s " + escapeArg(fromStation)
+                          + " -t " + escapeArg(toStation)
+                          + " -d " + date
+                          + " -p time";
+    if (!sendCommandLine(command, PendingAction::QueryTicket)) {
+        QMessageBox::warning(this, "发送失败", "无法发送查询请求，请检查网络连接。");
+    }
+}
+
 void MainWindow::onLogoutRequested() {
     if (pendingAction != PendingAction::None) {
         QMessageBox::information(this, "提示", "当前有请求正在处理中，请稍后再试。");
@@ -454,6 +484,13 @@ void MainWindow::processServerResult(sjtu::ResultType type, const sjtu::Result &
             profileDialog->exec();
             showProfileDialogOnQuery = false;
         }
+        return;
+    }
+
+    if (pendingAction == PendingAction::QueryTicket) {
+        pendingAction = PendingAction::None;
+        qDebug() << "[query_ticket response] result type =" << static_cast<int>(type);
+        return;
     }
 }
 
@@ -482,7 +519,33 @@ void MainWindow::handleAuthChanged(const QString &msg) {
 }
 
 void MainWindow::initializeComponents() {
-    // todo: initialize different panels and add them to stackedPanel
+    homePageWidget = new HomePageWidget(stackedPanel);
+    ticketPageWidget = new PlaceholderPageWidget("购票", stackedPanel);
+    orderPageWidget = new PlaceholderPageWidget("订单", stackedPanel);
+    managePageWidget = new PlaceholderPageWidget("管理", stackedPanel);
+
+    stackedPanel->addWidget(homePageWidget);
+    stackedPanel->addWidget(ticketPageWidget);
+    stackedPanel->addWidget(orderPageWidget);
+    stackedPanel->addWidget(managePageWidget);
+    stackedPanel->setCurrentWidget(homePageWidget);
+
+    connect(homePageWidget, &HomePageWidget::queryTicketRequested,
+            this, &MainWindow::onQueryTicketRequested);
+
+    connect(topBar, &TopBar::mainButtonClicked, this, [&]() {
+        stackedPanel->setCurrentWidget(homePageWidget);
+    });
+    connect(topBar, &TopBar::ticketButtonClicked, this, [&]() {
+        stackedPanel->setCurrentWidget(ticketPageWidget);
+    });
+    connect(topBar, &TopBar::orderButtonClicked, this, [&]() {
+        stackedPanel->setCurrentWidget(orderPageWidget);
+    });
+    connect(topBar, &TopBar::manageButtonClicked, this, [&]() {
+        stackedPanel->setCurrentWidget(managePageWidget);
+    });
+
     initialized = true;
 }
 

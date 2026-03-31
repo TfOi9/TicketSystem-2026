@@ -143,25 +143,34 @@ void OrderResult::print(std::ostream &os) {
 }
 
 std::pair<const char *, uint32_t> OrderResult::serialize() {
-    uint32_t size = orders_.size() * 188 + 4;
+    const uint32_t recordSize = static_cast<uint32_t>(sizeof(CompleteOrder));
+    uint32_t size = static_cast<uint32_t>(orders_.size()) * recordSize + 4;
     uint32_t len = static_cast<uint32_t>(orders_.size());
     char *str = new char[size]();
     int i = 0;
     memcpy(str, &len, 4);
     for (auto o : orders_) {
-        memcpy(str + i * 188 + 4, &o, 188);
+        memcpy(str + static_cast<uint32_t>(i) * recordSize + 4, &o, recordSize);
         i++;
     }
     return std::make_pair(str, size);
 }
 
 std::unique_ptr<OrderResult> OrderResult::deserialize(const char *data, uint32_t size) {
+    if (size < 4) {
+        return std::make_unique<OrderResult>(sjtu::vector<CompleteOrder>());
+    }
+    const uint32_t recordSize = static_cast<uint32_t>(sizeof(CompleteOrder));
     uint32_t len = 0;
     memcpy(&len, data, 4);
+    const uint64_t maxLenBySize = (size - 4) / recordSize;
+    if (static_cast<uint64_t>(len) > maxLenBySize) {
+        len = static_cast<uint32_t>(maxLenBySize);
+    }
     sjtu::vector<CompleteOrder> vec;
-    for (int i = 0; i < len; i++) {
+    for (uint32_t i = 0; i < len; i++) {
         CompleteOrder o;
-        memcpy(&o, data + i * 188 + 4, 188);
+        memcpy(&o, data + i * recordSize + 4, recordSize);
         vec.push_back(o);
     }
     return std::make_unique<OrderResult>(vec);
@@ -178,25 +187,34 @@ void TicketResult::print(std::ostream &os) {
 }
 
 std::pair<const char *, uint32_t> TicketResult::serialize() {
-    uint32_t size = tickets_.size() * 156 + 4;
+    const uint32_t recordSize = static_cast<uint32_t>(sizeof(CompleteTicket));
+    uint32_t size = static_cast<uint32_t>(tickets_.size()) * recordSize + 4;
     uint32_t len = static_cast<uint32_t>(tickets_.size());
     char *str = new char[size]();
     int i = 0;
     memcpy(str, &len, 4);
     for (auto t : tickets_) {
-        memcpy(str + i * 156 + 4, &t, 156);
+        memcpy(str + static_cast<uint32_t>(i) * recordSize + 4, &t, recordSize);
         i++;
     }
     return std::make_pair(str, size);
 }
 
 std::unique_ptr<TicketResult> TicketResult::deserialize(const char *data, uint32_t size) {
+    if (size < 4) {
+        return std::make_unique<TicketResult>(sjtu::vector<CompleteTicket>());
+    }
+    const uint32_t recordSize = static_cast<uint32_t>(sizeof(CompleteTicket));
     uint32_t len = 0;
     memcpy(&len, data, 4);
+    const uint64_t maxLenBySize = (size - 4) / recordSize;
+    if (static_cast<uint64_t>(len) > maxLenBySize) {
+        len = static_cast<uint32_t>(maxLenBySize);
+    }
     sjtu::vector<CompleteTicket> vec;
-    for (int i = 0; i < len; i++) {
+    for (uint32_t i = 0; i < len; i++) {
         CompleteTicket t;
-        memcpy(&t, data + i * 156 + 4, 156);
+        memcpy(&t, data + i * recordSize + 4, recordSize);
         vec.push_back(t);
     }
     return std::make_unique<TicketResult>(vec);
@@ -220,25 +238,34 @@ void TransferResult::print(std::ostream &os) {
 }
 
 std::pair<const char *, uint32_t> TransferResult::serialize() {
-    uint32_t size = tickets_.size() * 320 + 4;
+    const uint32_t recordSize = static_cast<uint32_t>(sizeof(CompleteTransferTicket));
+    uint32_t size = static_cast<uint32_t>(tickets_.size()) * recordSize + 4;
     uint32_t len = static_cast<uint32_t>(tickets_.size());
     char *str = new char[size]();
     int i = 0;
     memcpy(str, &len, 4);
     for (auto t : tickets_) {
-        memcpy(str + i * 320 + 4, &t, 320);
+        memcpy(str + static_cast<uint32_t>(i) * recordSize + 4, &t, recordSize);
         i++;
     }
     return std::make_pair(str, size);
 }
 
 std::unique_ptr<TransferResult> TransferResult::deserialize(const char *data, uint32_t size) {
+    if (size < 4) {
+        return std::make_unique<TransferResult>(sjtu::vector<CompleteTransferTicket>());
+    }
+    const uint32_t recordSize = static_cast<uint32_t>(sizeof(CompleteTransferTicket));
     uint32_t len = 0;
     memcpy(&len, data, 4);
+    const uint64_t maxLenBySize = (size - 4) / recordSize;
+    if (static_cast<uint64_t>(len) > maxLenBySize) {
+        len = static_cast<uint32_t>(maxLenBySize);
+    }
     sjtu::vector<CompleteTransferTicket> vec;
-    for (int i = 0; i < len; i++) {
+    for (uint32_t i = 0; i < len; i++) {
         CompleteTransferTicket t;
-        memcpy(&t, data + i * 320 + 4, 320);
+        memcpy(&t, data + i * recordSize + 4, recordSize);
         vec.push_back(t);
     }
     return std::make_unique<TransferResult>(vec);
@@ -283,6 +310,9 @@ std::pair<const char *, uint32_t> TrainResult::serialize() {
 }
 
 std::unique_ptr<TrainResult> TrainResult::deserialize(const char *data, uint32_t size) {
+    if (size < 4 + sizeof(TrainInfo)) {
+        return nullptr;
+    }
     TrainInfo train{};
     memcpy(&train, data + 4, sizeof(TrainInfo));
     return std::make_unique<TrainResult>(train);

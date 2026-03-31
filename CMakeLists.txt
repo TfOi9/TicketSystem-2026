@@ -80,6 +80,12 @@ add_executable(
 	frontend/src/client/main.cpp
 	frontend/include/client/top_bar.hpp
 	frontend/src/client/top_bar.cpp
+	frontend/include/client/ticket_query_widget.hpp
+	frontend/src/client/ticket_query_widget.cpp
+	frontend/include/client/home_page_widget.hpp
+	frontend/src/client/home_page_widget.cpp
+	frontend/include/client/placeholder_page_widget.hpp
+	frontend/src/client/placeholder_page_widget.cpp
 	frontend/include/client/login_dialog.hpp
 	frontend/src/client/login_dialog.cpp
 	frontend/include/client/register_dialog.hpp

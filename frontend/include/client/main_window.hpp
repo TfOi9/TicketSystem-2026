@@ -6,6 +6,8 @@
 #include "login_dialog.hpp"
 #include "register_dialog.hpp"
 #include "profile_dialog.hpp"
+#include "home_page_widget.hpp"
+#include "placeholder_page_widget.hpp"
 
 #include <QWidget>
 #include <QLabel>
@@ -46,6 +48,7 @@ private slots:
     void onRegisterRequested();
     void onLogoutRequested();
     void onProfileRequested();
+    void onQueryTicketRequested(const QString &fromStation, const QString &toStation, const QString &date);
 
 private:
     enum class PendingAction {
@@ -53,7 +56,8 @@ private:
         Login,
         Register,
         Logout,
-        QueryProfile
+        QueryProfile,
+        QueryTicket
     };
 
     void initalizeUI();
@@ -70,6 +74,10 @@ private:
     StatusBar *statusBarWidget;
 
     QStackedWidget *stackedPanel;
+    HomePageWidget *homePageWidget;
+    PlaceholderPageWidget *ticketPageWidget;
+    PlaceholderPageWidget *orderPageWidget;
+    PlaceholderPageWidget *managePageWidget;
 
     sjtu::TCPClient *tcpClient;
     sjtu::UDPClient *udpClient;
