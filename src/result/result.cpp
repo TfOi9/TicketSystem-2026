@@ -1,5 +1,7 @@
 #include "../../include/result/result.hpp"
-#include "system/order.hpp"
+#include "../../include/stl/unordered_map.hpp"
+#include "../../include/system/order.hpp"
+
 #include <cstring>
 #include <unordered_map>
 #include <memory>
@@ -8,8 +10,8 @@ namespace sjtu {
 
 namespace {
 
-std::unordered_map<ResultType, Result::Deserializer>& deserializer_registry() {
-    static std::unordered_map<ResultType, Result::Deserializer> registry;
+sjtu::unordered_map<ResultType, Result::Deserializer>& deserializer_registry() {
+    static sjtu::unordered_map<ResultType, Result::Deserializer> registry;
     return registry;
 }
 
@@ -67,7 +69,7 @@ std::unique_ptr<Result> Result::deserialize(ResultType type, const char *data, u
     if (it == registry.end()) {
         return nullptr;
     }
-    return it->second(data, size);
+    return (*it->second)(data, size);
 }
 
 void FailureResult::print(std::ostream& os) {

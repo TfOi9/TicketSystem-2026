@@ -80,8 +80,31 @@ add_executable(
 	frontend/src/client/main.cpp
 	frontend/include/client/top_bar.hpp
 	frontend/src/client/top_bar.cpp
+	frontend/include/client/login_dialog.hpp
+	frontend/src/client/login_dialog.cpp
+	frontend/include/client/register_dialog.hpp
+	frontend/src/client/register_dialog.cpp
+	frontend/include/client/profile_dialog.hpp
+	frontend/src/client/profile_dialog.cpp
+	frontend/include/client/status_bar.hpp
+	frontend/src/client/status_bar.cpp
 	frontend/include/client/main_window.hpp
 	frontend/src/client/main_window.cpp
+	frontend/include/web/tcp/tcpclient.hpp
+	frontend/src/web/tcp/tcpclient.cpp
+	frontend/include/web/udp/udpclient.hpp
+	frontend/src/web/udp/udpclient.cpp
+	frontend/include/web/dispatch/dispatcher.hpp
+	frontend/include/web/dispatch/sender.hpp
+	frontend/src/web/dispatch/dispatcher.cpp
+	frontend/include/web/tlv/tlvpacket.hpp
+	frontend/include/web/tlv/tlvparser.hpp
+	frontend/src/web/tlv/tlvpacket.cpp
+	frontend/src/web/tlv/tlvparser.cpp
+	src/command/command.cpp src/command/token.cpp
+	src/result/result.cpp
+	src/system/order.cpp src/system/ticket.cpp src/system/train.cpp src/system/user.cpp
+	src/utils/time_date.cpp src/utils/validator.cpp
 )
 
 target_link_libraries(client_gui Qt6::Core Qt6::Widgets Qt6::Network)

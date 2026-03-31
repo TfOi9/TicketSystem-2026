@@ -6,7 +6,7 @@
 
 namespace sjtu::client {
 
-TopBar::TopBar(QWidget *parent) : QWidget(parent) {
+TopBar::TopBar(QWidget *parent) : QWidget(parent), loggedIn(false), isAdmin(false) {
     setObjectName("TopBar");
     setAttribute(Qt::WA_StyledBackground);
     QHBoxLayout *layout = new QHBoxLayout(this);
@@ -58,23 +58,24 @@ TopBar::TopBar(QWidget *parent) : QWidget(parent) {
     userButton->setMenu(userMenu);
 
     applyStyle();
+    refreshBar();
 
 }
 
 void TopBar::onLoginButtonClicked() {
-    // todo
+    emit loginRequested();
 }
 
 void TopBar::onRegisterButtonClicked() {
-    // todo
+    emit registerRequested();
 }
 
 void TopBar::onLogoutButtonClicked() {
-    // todo
+    emit logoutRequested();
 }
 
 void TopBar::onProfileButtonClicked() {
-    // todo
+    emit profileRequested();
 }
 
 void TopBar::onMainButtonClicked() {
@@ -94,7 +95,21 @@ void TopBar::onManageButtonClicked() {
 }
 
 void TopBar::refreshBar() {
-    // todo
+    loginButton->setVisible(!loggedIn);
+    registerButton->setVisible(!loggedIn);
+    userButton->setVisible(loggedIn);
+    manageButton->setVisible(loggedIn && isAdmin);
+
+    if (loggedIn) {
+        userButton->setText(currentUsername);
+    }
+}
+
+void TopBar::setAuthState(bool loggedInState, const QString &username, bool adminState) {
+    loggedIn = loggedInState;
+    currentUsername = username;
+    isAdmin = adminState;
+    refreshBar();
 }
 
 void TopBar::applyStyle() {

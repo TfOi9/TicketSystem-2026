@@ -45,6 +45,8 @@ public:
 
     std::unique_ptr<Result> handle(const Command& command);
 
+    bool bootstrapRootSession();
+
     CompleteTicket complete(const Ticket& ticket);
 
     CompleteOrder complete(const Order& order);

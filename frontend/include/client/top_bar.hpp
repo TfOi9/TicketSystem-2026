@@ -17,6 +17,7 @@ public:
     TopBar(QWidget *parent = nullptr);
 
     void refreshBar();
+    void setAuthState(bool loggedIn, const QString &username, bool isAdmin);
     
     void setAuthChangedCallBack(const std::function<void(const QString &)> &cb) {
         authChangedCallback = cb;
@@ -27,6 +28,10 @@ signals:
     void ticketButtonClicked();
     void orderButtonClicked();
     void manageButtonClicked();
+    void loginRequested();
+    void registerRequested();
+    void logoutRequested();
+    void profileRequested();
     void authChanged(const QString &msg);
 
 private slots:
@@ -48,6 +53,10 @@ private:
     QPushButton *orderButton;
     QPushButton *manageButton;
     QPushButton *userButton;
+
+    bool loggedIn;
+    bool isAdmin;
+    QString currentUsername;
 
     std::function<void(const QString &)> authChangedCallback;
 

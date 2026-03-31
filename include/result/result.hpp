@@ -102,6 +102,11 @@ public:
     ProfileResult(const std::string& username, const std::string name, const std::string& email, int privilege)
         : Result(ResultType::Profile), username_(username), name_(name), email_(email), privilege_(privilege) {}
 
+    const std::string& username() const { return username_; }
+    const std::string& name() const { return name_; }
+    const std::string& email() const { return email_; }
+    int privilege() const { return privilege_; }
+
     void print(std::ostream& os) override;
 
     std::pair<const char *, uint32_t> serialize() override;

@@ -47,6 +47,11 @@ int main(int argc, char **argv) {
     QCoreApplication a(argc, argv);
 
     sjtu::TicketSystem system("server");
+    if (!system.bootstrapRootSession()) {
+        std::cerr << "[bootstrap] root session init failed" << std::endl;
+    } else {
+        std::cout << "[bootstrap] root online" << std::endl;
+    }
     
     sjtu::TCPServer server;
     server.start(1145);

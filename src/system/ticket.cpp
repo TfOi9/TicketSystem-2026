@@ -361,6 +361,27 @@ std::unique_ptr<Result> TicketSystem::handle(const Command &command) {
     return std::unique_ptr<Result>(res);
 }
 
+bool TicketSystem::bootstrapRootSession() {
+    const std::string username = "root";
+    const std::string password = "sjtu";
+    const std::string name = "管理员";
+    const std::string email = "yyu@apex.sjtu.edu.cn";
+
+    if (user_.empty()) {
+        if (user_.add_user("", username, password, name, email, 10) != 0) {
+            return false;
+        }
+    }
+
+    if (!user_.logged_in(username)) {
+        if (user_.login(username, password) != 0) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 void TicketSystem::flush() {
     timestamp_file_.seekp(0, std::ios::beg);
     timestamp_file_.write(reinterpret_cast<char *>(&order_timestamp_), sizeof(int));
