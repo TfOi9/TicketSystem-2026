@@ -47,6 +47,10 @@ public:
 
     bool bootstrapRootSession();
 
+    bool verifyUserCredential(const std::string &username, const std::string &password);
+
+    bool isUserLoggedIn(const std::string &username);
+
     CompleteTicket complete(const Ticket& ticket);
 
     CompleteOrder complete(const Order& order);

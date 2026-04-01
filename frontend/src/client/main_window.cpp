@@ -1,11 +1,13 @@
 #include "../../include/client/main_window.hpp"
 
 #include <QLayout>
+#include <QEventLoop>
 #include <QDataStream>
 #include <QDateTime>
 #include <QDebug>
 #include <QHostAddress>
 #include <QMessageBox>
+#include <QCloseEvent>
 #include <QUdpSocket>
 
 #include <iostream>
@@ -75,10 +77,17 @@ MainWindow::MainWindow(QWidget *parent)
     loginDialog(nullptr),
     registerDialog(nullptr),
     profileDialog(nullptr),
-      initialized(false) {
+        initialized(false),
+        isShuttingDown(false) {
     initalizeUI();
     setupNetworkClients();
     startServerDiscovery();
+}
+
+void MainWindow::closeEvent(QCloseEvent *event) {
+        isShuttingDown = true;
+        tryGracefulLogoutBeforeExit();
+        QMainWindow::closeEvent(event);
 }
 
 void MainWindow::initalizeUI() {
@@ -263,21 +272,6 @@ void MainWindow::onLoginRequested() {
         return;
     }
 
-    // Root 在服务端被长期保持在线，前端走本地登录态以避免后端 login 的重复登录失败。
-    if (username == "root" && password == "sjtu") {
-        isLoggedIn = true;
-        currentUsername = "root";
-        currentName = "管理员";
-        currentEmail = "yyu@apex.sjtu.edu.cn";
-        currentPrivilege = 10;
-        pendingAction = PendingAction::None;
-        pendingLoginUsername.clear();
-        showProfileDialogOnQuery = false;
-        applyAuthState();
-        QMessageBox::information(this, "登录成功", "已作为 root 登录。");
-        return;
-    }
-
     pendingLoginUsername = username;
     const QString command = "login -u " + escapeArg(username) + " -p " + escapeArg(password);
     if (!sendCommandLine(command, PendingAction::Login)) {
@@ -452,9 +446,13 @@ void MainWindow::processServerResult(sjtu::ResultType type, const sjtu::Result &
         pendingAction = PendingAction::None;
         if (type == sjtu::ResultType::Success) {
             resetAuthState();
-            QMessageBox::information(this, "已退出", "当前用户已退出登录。");
+            if (!isShuttingDown) {
+                QMessageBox::information(this, "已退出", "当前用户已退出登录。");
+            }
         } else {
-            QMessageBox::warning(this, "退出失败", "退出登录失败，请稍后重试。");
+            if (!isShuttingDown) {
+                QMessageBox::warning(this, "退出失败", "退出登录失败，请稍后重试。");
+            }
         }
         return;
     }
@@ -506,6 +504,45 @@ void MainWindow::resetAuthState() {
     currentEmail.clear();
     currentPrivilege = 0;
     applyAuthState();
+}
+
+void MainWindow::tryGracefulLogoutBeforeExit() {
+    if (!isLoggedIn || currentUsername == "root") {
+        return;
+    }
+    if (pendingAction != PendingAction::None) {
+        return;
+    }
+    if (tcpClient == nullptr || !tcpClient->isConnected()) {
+        return;
+    }
+
+    const QString command = "logout -u " + escapeArg(currentUsername);
+    if (!sendCommandLine(command, PendingAction::Logout)) {
+        pendingAction = PendingAction::None;
+        return;
+    }
+
+    QEventLoop waitLoop;
+    QTimer timeoutTimer;
+    timeoutTimer.setSingleShot(true);
+    connect(&timeoutTimer, &QTimer::timeout, &waitLoop, &QEventLoop::quit);
+
+    QTimer pollTimer;
+    pollTimer.setInterval(20);
+    connect(&pollTimer, &QTimer::timeout, this, [&]() {
+        if (pendingAction == PendingAction::None) {
+            waitLoop.quit();
+        }
+    });
+
+    timeoutTimer.start(1200);
+    pollTimer.start();
+    waitLoop.exec();
+
+    if (pendingAction == PendingAction::Logout) {
+        pendingAction = PendingAction::None;
+    }
 }
 
 QString MainWindow::escapeArg(const QString &arg) {

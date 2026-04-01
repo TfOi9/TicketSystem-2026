@@ -382,6 +382,14 @@ bool TicketSystem::bootstrapRootSession() {
     return true;
 }
 
+bool TicketSystem::verifyUserCredential(const std::string &username, const std::string &password) {
+    return user_.verify_password(username, password);
+}
+
+bool TicketSystem::isUserLoggedIn(const std::string &username) {
+    return user_.logged_in(username);
+}
+
 void TicketSystem::flush() {
     timestamp_file_.seekp(0, std::ios::beg);
     timestamp_file_.write(reinterpret_cast<char *>(&order_timestamp_), sizeof(int));

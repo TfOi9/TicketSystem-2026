@@ -16,6 +16,8 @@
 #include <QStackedWidget>
 #include <QTimer>
 
+class QCloseEvent;
+
 #include "../web/tcp/tcpclient.hpp"
 #include "../web/udp/udpclient.hpp"
 
@@ -38,6 +40,9 @@ public:
     void setStatusMessage(const QString &message) {
         // statusBar()->showMessage(message);
     }
+
+protected:
+    void closeEvent(QCloseEvent *event) override;
 
 private slots:
     void initializeComponents();
@@ -68,6 +73,7 @@ private:
     void processServerResult(sjtu::ResultType type, const sjtu::Result &result);
     void applyAuthState();
     void resetAuthState();
+    void tryGracefulLogoutBeforeExit();
     static QString escapeArg(const QString &arg);
 
     TopBar *topBar;
@@ -106,6 +112,7 @@ private:
     static constexpr int kMaxDiscoveryAttempts = 3;
 
     bool initialized;
+    bool isShuttingDown;
 
 };
 

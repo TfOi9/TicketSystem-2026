@@ -70,6 +70,8 @@ public:
 
     bool logged_in(const std::string& username);
 
+    bool verify_password(const std::string& username, const std::string& password);
+
     std::optional<User> query_profile(const std::string& cur_username, const std::string& username);
 
     std::optional<User> modify_profile(const std::string& cur_username, const std::string& username, const std::string& password = "", const std::string& name = "", const std::string& email = "", int privilege = -1);

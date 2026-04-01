@@ -63,6 +63,14 @@ bool UserSystem::logged_in(const std::string &username) {
     return (login_list_.find(FixedString<20>(username)) != login_list_.end());
 }
 
+bool UserSystem::verify_password(const std::string &username, const std::string &password) {
+    std::optional<User> target_user = user_map_.find(FixedString<20>(username));
+    if (target_user == std::nullopt) {
+        return false;
+    }
+    return target_user->password() == password;
+}
+
 std::optional<User> UserSystem::query_profile(const std::string &cur_username, const std::string &username) {
     auto it = login_list_.find(FixedString<20>(cur_username));
     if (it == login_list_.end()) {
