@@ -1,4 +1,4 @@
-#include "../../include/client/register_dialog.hpp"
+#include "client/dialogs/register_dialog.hpp"
 
 #include <QFormLayout>
 #include <QHBoxLayout>

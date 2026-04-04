@@ -1,4 +1,4 @@
-#include "../../include/client/placeholder_page_widget.hpp"
+#include "client/widgets/placeholder_page_widget.hpp"
 
 #include <QLabel>
 #include <QVBoxLayout>

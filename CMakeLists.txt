@@ -78,22 +78,24 @@ target_link_libraries(client Qt6::Core Qt6::Widgets Qt6::Network)
 add_executable(
 	client_gui
 	frontend/src/client/main.cpp
-	frontend/include/client/top_bar.hpp
-	frontend/src/client/top_bar.cpp
-	frontend/include/client/ticket_query_widget.hpp
-	frontend/src/client/ticket_query_widget.cpp
-	frontend/include/client/home_page_widget.hpp
-	frontend/src/client/home_page_widget.cpp
-	frontend/include/client/placeholder_page_widget.hpp
-	frontend/src/client/placeholder_page_widget.cpp
-	frontend/include/client/login_dialog.hpp
-	frontend/src/client/login_dialog.cpp
-	frontend/include/client/register_dialog.hpp
-	frontend/src/client/register_dialog.cpp
-	frontend/include/client/profile_dialog.hpp
-	frontend/src/client/profile_dialog.cpp
-	frontend/include/client/status_bar.hpp
-	frontend/src/client/status_bar.cpp
+	frontend/include/client/bars/top_bar.hpp
+	frontend/src/client/bars/top_bar.cpp
+	frontend/include/client/widgets/ticket_query_widget.hpp
+	frontend/src/client/widgets/ticket_query_widget.cpp
+	frontend/include/client/widgets/ticket_list_widget.hpp
+	frontend/src/client/widgets/ticket_list_widget.cpp
+	frontend/include/client/widgets/home_page_widget.hpp
+	frontend/src/client/widgets/home_page_widget.cpp
+	frontend/include/client/widgets/placeholder_page_widget.hpp
+	frontend/src/client/widgets/placeholder_page_widget.cpp
+	frontend/include/client/dialogs/login_dialog.hpp
+	frontend/src/client/dialogs/login_dialog.cpp
+	frontend/include/client/dialogs/register_dialog.hpp
+	frontend/src/client/dialogs/register_dialog.cpp
+	frontend/include/client/dialogs/profile_dialog.hpp
+	frontend/src/client/dialogs/profile_dialog.cpp
+	frontend/include/client/bars/status_bar.hpp
+	frontend/src/client/bars/status_bar.cpp
 	frontend/include/client/main_window.hpp
 	frontend/src/client/main_window.cpp
 	frontend/include/web/tcp/tcpclient.hpp

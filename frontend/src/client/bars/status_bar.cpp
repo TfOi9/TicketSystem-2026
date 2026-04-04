@@ -1,4 +1,4 @@
-#include "../../include/client/status_bar.hpp"
+#include "client/bars/status_bar.hpp"
 
 #include <QLabel>
 #include <QHBoxLayout>

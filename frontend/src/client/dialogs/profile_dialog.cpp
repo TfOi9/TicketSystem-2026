@@ -1,4 +1,4 @@
-#include "../../include/client/profile_dialog.hpp"
+#include "client/dialogs/profile_dialog.hpp"
 
 #include <QFormLayout>
 #include <QHBoxLayout>

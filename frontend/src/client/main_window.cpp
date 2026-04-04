@@ -1,4 +1,4 @@
-#include "../../include/client/main_window.hpp"
+#include "client/main_window.hpp"
 
 #include <QLayout>
 #include <QEventLoop>
@@ -17,6 +17,26 @@
 #include "../../../include/result/result.hpp"
 
 namespace {
+
+QString formatDate(const sjtu::date &d) {
+    return QString("%1-%2")
+        .arg(d.month_, 2, 10, QLatin1Char('0'))
+        .arg(d.day_, 2, 10, QLatin1Char('0'));
+}
+
+QString formatTime(const sjtu::time &t) {
+    QString text = QString("%1:%2")
+        .arg(t.hr_, 2, 10, QLatin1Char('0'))
+        .arg(t.min_, 2, 10, QLatin1Char('0'));
+    if (t.day_offset_ > 0) {
+        text += QString(" (+%1d)").arg(t.day_offset_);
+    }
+    return text;
+}
+
+QString formatDateTime(const sjtu::date &d, const sjtu::time &t) {
+    return formatDate(d) + " " + formatTime(t);
+}
 
 QByteArray serializeCommandInfo(const sjtu::Command &cmd) {
     QByteArray payload;
@@ -57,26 +77,26 @@ namespace sjtu::client {
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
-      topBar(nullptr),
-      statusBarWidget(nullptr),
-      stackedPanel(nullptr),
-    homePageWidget(nullptr),
-    ticketPageWidget(nullptr),
-    orderPageWidget(nullptr),
-    managePageWidget(nullptr),
-      tcpClient(nullptr),
-      udpClient(nullptr),
-      discoveryProbeSocket(nullptr),
-      discoveryProbeTimer(nullptr),
-      connectedViaDiscovery(false),
-      discoveryAttempts(0),
-    pendingAction(PendingAction::None),
-    showProfileDialogOnQuery(false),
-    isLoggedIn(false),
-    currentPrivilege(0),
-    loginDialog(nullptr),
-    registerDialog(nullptr),
-    profileDialog(nullptr),
+        topBar(nullptr),
+        statusBarWidget(nullptr),
+        stackedPanel(nullptr),
+        homePageWidget(nullptr),
+        ticketPageWidget(nullptr),
+        orderPageWidget(nullptr),
+        managePageWidget(nullptr),
+        tcpClient(nullptr),
+        udpClient(nullptr),
+        discoveryProbeSocket(nullptr),
+        discoveryProbeTimer(nullptr),
+        connectedViaDiscovery(false),
+        discoveryAttempts(0),
+        pendingAction(PendingAction::None),
+        showProfileDialogOnQuery(false),
+        isLoggedIn(false),
+        currentPrivilege(0),
+        loginDialog(nullptr),
+        registerDialog(nullptr),
+        profileDialog(nullptr),
         initialized(false),
         isShuttingDown(false) {
     initalizeUI();
@@ -331,6 +351,11 @@ void MainWindow::onQueryTicketRequested(const QString &fromStation, const QStrin
                           + " -p time";
     if (!sendCommandLine(command, PendingAction::QueryTicket)) {
         QMessageBox::warning(this, "发送失败", "无法发送查询请求，请检查网络连接。");
+        return;
+    }
+
+    if (ticketPageWidget != nullptr) {
+        stackedPanel->setCurrentWidget(ticketPageWidget);
     }
 }
 
@@ -487,7 +512,44 @@ void MainWindow::processServerResult(sjtu::ResultType type, const sjtu::Result &
 
     if (pendingAction == PendingAction::QueryTicket) {
         pendingAction = PendingAction::None;
-        qDebug() << "[query_ticket response] result type =" << static_cast<int>(type);
+        if (type != sjtu::ResultType::Ticket) {
+            if (ticketPageWidget != nullptr) {
+                ticketPageWidget->clearTickets();
+            }
+            QMessageBox::warning(this, "查询结果", "未查询到可用车次。");
+            return;
+        }
+
+        const auto *ticketResult = dynamic_cast<const sjtu::TicketResult *>(&result);
+        if (ticketResult == nullptr) {
+            if (ticketPageWidget != nullptr) {
+                ticketPageWidget->clearTickets();
+            }
+            QMessageBox::warning(this, "查询失败", "车票结果解析失败。");
+            return;
+        }
+
+        QVector<TicketListWidget::TicketListItem> displayTickets;
+        const auto &tickets = ticketResult->tickets();
+        displayTickets.reserve(static_cast<int>(tickets.size()));
+
+        for (size_t i = 0; i < tickets.size(); ++i) {
+            const auto &ticket = tickets[i];
+            TicketListWidget::TicketListItem item;
+            item.trainName = QString::fromStdString(ticket.train_id_.str());
+            item.startStation = QString::fromStdString(ticket.start_station_.str());
+            item.endStation = QString::fromStdString(ticket.end_station_.str());
+            item.departureTime = formatDateTime(ticket.departure_date_, ticket.departure_time_);
+            item.arrivalTime = formatDateTime(ticket.arrival_date_, ticket.arrival_time_);
+            item.price = ticket.price_;
+            item.remain = ticket.seat_;
+            displayTickets.push_back(item);
+        }
+
+        if (ticketPageWidget != nullptr) {
+            ticketPageWidget->setTickets(displayTickets);
+            stackedPanel->setCurrentWidget(ticketPageWidget);
+        }
         return;
     }
 }
@@ -557,7 +619,7 @@ void MainWindow::handleAuthChanged(const QString &msg) {
 
 void MainWindow::initializeComponents() {
     homePageWidget = new HomePageWidget(stackedPanel);
-    ticketPageWidget = new PlaceholderPageWidget("购票", stackedPanel);
+    ticketPageWidget = new TicketListWidget(stackedPanel);
     orderPageWidget = new PlaceholderPageWidget("订单", stackedPanel);
     managePageWidget = new PlaceholderPageWidget("管理", stackedPanel);
 
@@ -569,6 +631,14 @@ void MainWindow::initializeComponents() {
 
     connect(homePageWidget, &HomePageWidget::queryTicketRequested,
             this, &MainWindow::onQueryTicketRequested);
+
+    connect(ticketPageWidget, &TicketListWidget::trainNameClicked, this, [](const QString &trainName) {
+        qDebug() << "Train name clicked:" << trainName;
+    });
+
+    connect(ticketPageWidget, &TicketListWidget::purchaseRequested, this, [](const QString &trainName) {
+        qDebug() << "Purchase requested for train:" << trainName;
+    });
 
     connect(topBar, &TopBar::mainButtonClicked, this, [&]() {
         stackedPanel->setCurrentWidget(homePageWidget);

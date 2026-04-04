@@ -1,4 +1,4 @@
-#include "../../include/client/top_bar.hpp"
+#include "client/bars/top_bar.hpp"
 
 #include <QLayout>
 #include <QMenu>

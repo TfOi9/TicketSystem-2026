@@ -1,13 +1,14 @@
 #ifndef MAIN_WINDOW_HPP
 #define MAIN_WINDOW_HPP
 
-#include "top_bar.hpp"
-#include "status_bar.hpp"
-#include "login_dialog.hpp"
-#include "register_dialog.hpp"
-#include "profile_dialog.hpp"
-#include "home_page_widget.hpp"
-#include "placeholder_page_widget.hpp"
+#include "bars/top_bar.hpp"
+#include "bars/status_bar.hpp"
+#include "dialogs/login_dialog.hpp"
+#include "dialogs/register_dialog.hpp"
+#include "dialogs/profile_dialog.hpp"
+#include "widgets/home_page_widget.hpp"
+#include "widgets/placeholder_page_widget.hpp"
+#include "widgets/ticket_list_widget.hpp"
 
 #include <QWidget>
 #include <QLabel>
@@ -81,7 +82,7 @@ private:
 
     QStackedWidget *stackedPanel;
     HomePageWidget *homePageWidget;
-    PlaceholderPageWidget *ticketPageWidget;
+    TicketListWidget *ticketPageWidget;
     PlaceholderPageWidget *orderPageWidget;
     PlaceholderPageWidget *managePageWidget;
 

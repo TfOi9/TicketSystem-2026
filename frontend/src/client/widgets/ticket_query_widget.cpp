@@ -1,4 +1,4 @@
-#include "../../include/client/ticket_query_widget.hpp"
+#include "client/widgets/ticket_query_widget.hpp"
 
 #include <QDate>
 #include <QDateEdit>

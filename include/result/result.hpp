@@ -135,6 +135,8 @@ class TicketResult : public Result {
 public:
     TicketResult(const sjtu::vector<CompleteTicket>& tickets) : Result(ResultType::Ticket), tickets_(tickets) {}
 
+    const sjtu::vector<CompleteTicket>& tickets() const { return tickets_; }
+
     void print(std::ostream& os) override;
 
     std::pair<const char *, uint32_t> serialize() override;

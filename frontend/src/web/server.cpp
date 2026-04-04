@@ -81,7 +81,7 @@ bool askRootLoginApproval(const QString &clientTag, int timeoutSeconds) {
 int main(int argc, char **argv) {
     QCoreApplication a(argc, argv);
 
-    sjtu::TicketSystem system("server");
+    sjtu::TicketSystem system;
     if (!system.bootstrapRootSession()) {
         std::cerr << "[bootstrap] root session init failed" << std::endl;
     } else {

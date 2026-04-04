@@ -1,5 +1,5 @@
-#include "../../include/client/home_page_widget.hpp"
-#include "../../include/client/ticket_query_widget.hpp"
+#include "client/widgets/home_page_widget.hpp"
+#include "client/widgets/ticket_query_widget.hpp"
 
 #include <QHBoxLayout>
 #include <QLabel>
