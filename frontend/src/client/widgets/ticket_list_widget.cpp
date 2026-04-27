@@ -1,12 +1,54 @@
 #include "client/widgets/ticket_list_widget.hpp"
 
 #include <QHeaderView>
-#include <QHBoxLayout>
 #include <QLabel>
+#include <QHBoxLayout>
 #include <QPushButton>
 #include <QTableWidget>
 #include <QTableWidgetItem>
 #include <QVBoxLayout>
+
+namespace {
+
+class SortableTableItem : public QTableWidgetItem {
+public:
+    SortableTableItem(const QString &text, qint64 sortKey)
+        : QTableWidgetItem(text), sortKey_(sortKey) {}
+
+    bool operator<(const QTableWidgetItem &other) const override {
+        const auto *otherItem = dynamic_cast<const SortableTableItem *>(&other);
+        if (otherItem != nullptr) {
+            return sortKey_ < otherItem->sortKey_;
+        }
+        return QTableWidgetItem::operator<(other);
+    }
+
+private:
+    qint64 sortKey_;
+};
+
+QString formatDuration(int minutes) {
+    if (minutes <= 0) {
+        return "0m";
+    }
+    const int hours = minutes / 60;
+    const int mins = minutes % 60;
+    if (hours == 0) {
+        return QString::number(mins) + "m";
+    }
+    if (mins == 0) {
+        return QString::number(hours) + "h";
+    }
+    return QString::number(hours) + "h " + QString::number(mins) + "m";
+}
+
+void centerItem(QTableWidgetItem *item) {
+    if (item != nullptr) {
+        item->setTextAlignment(Qt::AlignCenter);
+    }
+}
+
+} // namespace
 
 namespace sjtu::client {
 
@@ -27,24 +69,32 @@ TicketListWidget::TicketListWidget(QWidget *parent)
 
     tableWidget = new QTableWidget(this);
     tableWidget->setObjectName("TicketListTable");
-    tableWidget->setColumnCount(8);
+    tableWidget->setColumnCount(9);
     tableWidget->setHorizontalHeaderLabels(
-        {"车次名", "始发站", "终到站", "出发时间", "到达时间", "价格", "余票", "操作"}
+        {"车次名", "出发站", "到达站", "出发时间", "到达时间", "历时", "价格", "余票", "操作"}
     );
     tableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
     tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
     tableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
     tableWidget->verticalHeader()->setVisible(false);
     tableWidget->setAlternatingRowColors(true);
-    tableWidget->horizontalHeader()->setStretchLastSection(false);
-    tableWidget->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
-    tableWidget->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
-    tableWidget->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
-    tableWidget->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
-    tableWidget->horizontalHeader()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
-    tableWidget->horizontalHeader()->setSectionResizeMode(5, QHeaderView::ResizeToContents);
-    tableWidget->horizontalHeader()->setSectionResizeMode(6, QHeaderView::ResizeToContents);
-    tableWidget->horizontalHeader()->setSectionResizeMode(7, QHeaderView::Stretch);
+    tableWidget->setSortingEnabled(true);
+
+    QHeaderView *header = tableWidget->horizontalHeader();
+    header->setSectionsClickable(true);
+    header->setSortIndicatorShown(true);
+    header->setStretchLastSection(false);
+    header->setSectionResizeMode(QHeaderView::Fixed);
+
+    tableWidget->setColumnWidth(0, 120);
+    tableWidget->setColumnWidth(1, 115);
+    tableWidget->setColumnWidth(2, 115);
+    tableWidget->setColumnWidth(3, 155);
+    tableWidget->setColumnWidth(4, 155);
+    tableWidget->setColumnWidth(5, 90);
+    tableWidget->setColumnWidth(6, 80);
+    tableWidget->setColumnWidth(7, 80);
+    tableWidget->setColumnWidth(8, 92);
 
     connect(tableWidget, &QTableWidget::cellClicked,
             this, &TicketListWidget::onCellClicked);
@@ -99,6 +149,9 @@ void TicketListWidget::clearTickets() {
 }
 
 void TicketListWidget::setTickets(const QVector<TicketListItem> &tickets) {
+    const bool sortingEnabled = tableWidget->isSortingEnabled();
+    tableWidget->setSortingEnabled(false);
+
     clearTickets();
     tableWidget->setRowCount(tickets.size());
 
@@ -110,21 +163,50 @@ void TicketListWidget::setTickets(const QVector<TicketListItem> &tickets) {
         trainFont.setUnderline(true);
         trainNameItem->setFont(trainFont);
         trainNameItem->setForeground(QColor("#1d4ed8"));
+        centerItem(trainNameItem);
+
+        auto *depItem = new SortableTableItem(ticket.departureTime, ticket.departureSortKey);
+        auto *arrItem = new SortableTableItem(ticket.arrivalTime, ticket.arrivalSortKey);
+        auto *durationItem = new SortableTableItem(
+            formatDuration(ticket.durationMinutes),
+            ticket.durationMinutes
+        );
+        auto *priceItem = new SortableTableItem(QString::number(ticket.price), ticket.price);
+
+        centerItem(depItem);
+        centerItem(arrItem);
+        centerItem(durationItem);
+        centerItem(priceItem);
 
         tableWidget->setItem(row, 0, trainNameItem);
-        tableWidget->setItem(row, 1, new QTableWidgetItem(ticket.startStation));
-        tableWidget->setItem(row, 2, new QTableWidgetItem(ticket.endStation));
-        tableWidget->setItem(row, 3, new QTableWidgetItem(ticket.departureTime));
-        tableWidget->setItem(row, 4, new QTableWidgetItem(ticket.arrivalTime));
-        tableWidget->setItem(row, 5, new QTableWidgetItem(QString::number(ticket.price)));
-        tableWidget->setItem(row, 6, new QTableWidgetItem(QString::number(ticket.remain)));
+        auto *startItem = new QTableWidgetItem(ticket.startStation);
+        auto *endItem = new QTableWidgetItem(ticket.endStation);
+        auto *remainItem = new QTableWidgetItem(QString::number(ticket.remain));
+        centerItem(startItem);
+        centerItem(endItem);
+        centerItem(remainItem);
 
-        QPushButton *buyButton = new QPushButton("购票", tableWidget);
+        tableWidget->setItem(row, 1, startItem);
+        tableWidget->setItem(row, 2, endItem);
+        tableWidget->setItem(row, 3, depItem);
+        tableWidget->setItem(row, 4, arrItem);
+        tableWidget->setItem(row, 5, durationItem);
+        tableWidget->setItem(row, 6, priceItem);
+        tableWidget->setItem(row, 7, remainItem);
+
+        QPushButton *buyButton = new QPushButton("购票", this);
         connect(buyButton, &QPushButton::clicked, this, [this, trainName = ticket.trainName]() {
             onPurchaseButtonClicked(trainName);
         });
-        tableWidget->setCellWidget(row, 7, buyButton);
+
+        QWidget *buttonHost = new QWidget(tableWidget);
+        QHBoxLayout *buttonLayout = new QHBoxLayout(buttonHost);
+        buttonLayout->setContentsMargins(0, 0, 0, 0);
+        buttonLayout->addWidget(buyButton, 0, Qt::AlignCenter);
+        tableWidget->setCellWidget(row, 8, buttonHost);
     }
+
+    tableWidget->setSortingEnabled(sortingEnabled);
 }
 
 void TicketListWidget::onCellClicked(int row, int column) {

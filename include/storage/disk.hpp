@@ -174,7 +174,7 @@ void DISKMANAGER_TYPE::restore_list() {
     else {
         std::fstream list_file(file_name_ + ".free_list.dat", std::ios::in | std::ios::out | std::ios::binary);
         if (!list_file) {
-            // file open faliure, discarding free pages
+            // file open failure, discarding free pages
             return;
         }
         list_file.seekg(0);

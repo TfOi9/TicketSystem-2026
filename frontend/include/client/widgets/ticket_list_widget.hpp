@@ -20,6 +20,9 @@ public:
         QString endStation;
         QString departureTime;
         QString arrivalTime;
+        int durationMinutes;
+        qint64 departureSortKey;
+        qint64 arrivalSortKey;
         int price;
         int remain;
     };

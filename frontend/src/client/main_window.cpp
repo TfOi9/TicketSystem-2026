@@ -38,6 +38,13 @@ QString formatDateTime(const sjtu::date &d, const sjtu::time &t) {
     return formatDate(d) + " " + formatTime(t);
 }
 
+qint64 toMinutesKey(const sjtu::date &d, const sjtu::time &t) {
+    return static_cast<qint64>(int(d)) * 1440
+         + static_cast<qint64>(t.day_offset_) * 1440
+         + static_cast<qint64>(t.hr_) * 60
+         + static_cast<qint64>(t.min_);
+}
+
 QByteArray serializeCommandInfo(const sjtu::Command &cmd) {
     QByteArray payload;
     QDataStream out(&payload, QIODevice::WriteOnly);
@@ -541,6 +548,9 @@ void MainWindow::processServerResult(sjtu::ResultType type, const sjtu::Result &
             item.endStation = QString::fromStdString(ticket.end_station_.str());
             item.departureTime = formatDateTime(ticket.departure_date_, ticket.departure_time_);
             item.arrivalTime = formatDateTime(ticket.arrival_date_, ticket.arrival_time_);
+            item.durationMinutes = ticket.duration_;
+            item.departureSortKey = toMinutesKey(ticket.departure_date_, ticket.departure_time_);
+            item.arrivalSortKey = toMinutesKey(ticket.arrival_date_, ticket.arrival_time_);
             item.price = ticket.price_;
             item.remain = ticket.seat_;
             displayTickets.push_back(item);
