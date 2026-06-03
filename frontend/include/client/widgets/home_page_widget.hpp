@@ -7,9 +7,12 @@ namespace sjtu {
 namespace client {
 
 class TicketQueryWidget;
+class MainWindow;
 
 class HomePageWidget : public QWidget {
     Q_OBJECT
+
+    friend class MainWindow;
 
 public:
     explicit HomePageWidget(QWidget *parent = nullptr);

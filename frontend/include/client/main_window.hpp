@@ -6,9 +6,12 @@
 #include "dialogs/login_dialog.hpp"
 #include "dialogs/register_dialog.hpp"
 #include "dialogs/profile_dialog.hpp"
+#include "dialogs/buy_ticket_dialog.hpp"
+#include "dialogs/refund_dialog.hpp"
 #include "widgets/home_page_widget.hpp"
-#include "widgets/placeholder_page_widget.hpp"
 #include "widgets/ticket_list_widget.hpp"
+#include "widgets/orders_page_widget.hpp"
+#include "widgets/admin_page_widget.hpp"
 
 #include <QWidget>
 #include <QLabel>
@@ -39,7 +42,6 @@ public:
     MainWindow(QWidget *parent = nullptr);
 
     void setStatusMessage(const QString &message) {
-        // statusBar()->showMessage(message);
     }
 
 protected:
@@ -55,6 +57,17 @@ private slots:
     void onLogoutRequested();
     void onProfileRequested();
     void onQueryTicketRequested(const QString &fromStation, const QString &toStation, const QString &date);
+    void onBuyTicketRequested(const QString &trainName);
+    void onRefundRequested(int orderIndex);
+    void onOrderPageActivated();
+    void onOrderRefreshRequested();
+    void onAdminQueryTrainRequested(const QString &trainId);
+    void onAdminReleaseTrainRequested(const QString &trainId);
+    void onAdminDeleteTrainRequested(const QString &trainId);
+    void onAdminAddTrainRequested(const QString &command);
+    void onAdminQueryProfileRequested(const QString &username);
+    void onAdminAddUserRequested(const QString &username, const QString &password,
+                                 const QString &name, const QString &email, int privilege);
 
 private:
     enum class PendingAction {
@@ -63,7 +76,16 @@ private:
         Register,
         Logout,
         QueryProfile,
-        QueryTicket
+        QueryTicket,
+        BuyTicket,
+        RefundTicket,
+        QueryOrder,
+        QueryTrain,
+        ReleaseTrain,
+        DeleteTrain,
+        AddTrain,
+        AdminQueryProfile,
+        AdminAddUser
     };
 
     void initalizeUI();
@@ -76,6 +98,7 @@ private:
     void resetAuthState();
     void tryGracefulLogoutBeforeExit();
     static QString escapeArg(const QString &arg);
+    void refreshOrders();
 
     TopBar *topBar;
     StatusBar *statusBarWidget;
@@ -83,8 +106,8 @@ private:
     QStackedWidget *stackedPanel;
     HomePageWidget *homePageWidget;
     TicketListWidget *ticketPageWidget;
-    PlaceholderPageWidget *orderPageWidget;
-    PlaceholderPageWidget *managePageWidget;
+    OrdersPageWidget *orderPageWidget;
+    AdminPageWidget *managePageWidget;
 
     sjtu::TCPClient *tcpClient;
     sjtu::UDPClient *udpClient;
@@ -107,6 +130,10 @@ private:
     LoginDialog *loginDialog;
     RegisterDialog *registerDialog;
     ProfileDialog *profileDialog;
+
+    TicketListWidget::TicketListItem currentTicketContext;
+    QString currentTicketDate;
+    OrdersPageWidget::OrderItem currentRefundContext;
 
     static constexpr quint16 kDiscoveryPort = 45454;
     static constexpr quint16 kServerPort = 1145;

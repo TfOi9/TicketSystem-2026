@@ -30,7 +30,7 @@ HomePageWidget::HomePageWidget(QWidget *parent) : QWidget(parent), queryWidget(n
     rightLayout->setContentsMargins(0, 0, 0, 0);
     rightLayout->addStretch(1);
 
-    QLabel *title = new QLabel("畅行 2025 夏季班次", rightBlock);
+    QLabel *title = new QLabel(QString::fromUtf8("畅行 2026 夏季班次"), rightBlock);
     title->setObjectName("HomeBannerTitle");
     QLabel *subtitle = new QLabel("在左侧输入出发站、目的地和日期，快速发起车票查询", rightBlock);
     subtitle->setObjectName("HomeBannerSubtitle");

@@ -6,6 +6,7 @@
 class QLineEdit;
 class QDateEdit;
 class QPushButton;
+class QCheckBox;
 
 namespace sjtu {
 namespace client {
@@ -15,6 +16,8 @@ class TicketQueryWidget : public QWidget {
 
 public:
     explicit TicketQueryWidget(QWidget *parent = nullptr);
+
+    bool isTransferMode() const;
 
 signals:
     void queryTicketRequested(const QString &fromStation, const QString &toStation, const QString &date);
@@ -29,6 +32,7 @@ private:
     QDateEdit *dateEdit;
     QPushButton *swapButton;
     QPushButton *queryButton;
+    QCheckBox *transferCheckBox;
 };
 
 } // namespace client

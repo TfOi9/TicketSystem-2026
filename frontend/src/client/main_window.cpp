@@ -9,12 +9,15 @@
 #include <QMessageBox>
 #include <QCloseEvent>
 #include <QUdpSocket>
+#include <QTableWidget>
+#include <QTableWidgetItem>
 
 #include <iostream>
 
 #include "../../../include/command/command.hpp"
 #include "../../../include/command/token.hpp"
 #include "../../../include/result/result.hpp"
+#include "client/widgets/ticket_query_widget.hpp"
 
 namespace {
 
@@ -206,11 +209,11 @@ void MainWindow::setupNetworkClients() {
         if (udpClient) {
             udpClient->stopListening();
         }
-        updateConnectionStatus("已连接");
+        updateConnectionStatus(QString::fromUtf8("已连接"));
     });
 
     connect(tcpClient, &sjtu::TCPClient::disconnected, this, [&]() {
-        updateConnectionStatus("已断开");
+        updateConnectionStatus(QString::fromUtf8("已断开"));
         connectedViaDiscovery = false;
         pendingAction = PendingAction::None;
         pendingLoginUsername.clear();
@@ -218,7 +221,7 @@ void MainWindow::setupNetworkClients() {
     });
 
     connect(tcpClient, &sjtu::TCPClient::error, this, [&](const QString &err) {
-        updateConnectionStatus("连接失败: " + err);
+        updateConnectionStatus(QString::fromUtf8("连接失败: ") + err);
         pendingAction = PendingAction::None;
         pendingLoginUsername.clear();
         showProfileDialogOnQuery = false;
@@ -227,12 +230,12 @@ void MainWindow::setupNetworkClients() {
     connect(udpClient, &sjtu::UDPClient::stringReceived, this, &MainWindow::onServerDiscovered);
     connect(discoveryProbeTimer, &QTimer::timeout, this, &MainWindow::onDiscoveryProbeTimeout);
 
-    updateConnectionStatus("正在发现服务器...");
+    updateConnectionStatus(QString::fromUtf8("正在发现服务器..."));
 }
 
 void MainWindow::startServerDiscovery() {
     if (!udpClient->startListening(kDiscoveryPort)) {
-        updateConnectionStatus("UDP 监听失败");
+        updateConnectionStatus(QString::fromUtf8("UDP 监听失败"));
         return;
     }
 
@@ -250,7 +253,7 @@ void MainWindow::onDiscoveryProbeTimeout() {
 
     if (discoveryAttempts >= kMaxDiscoveryAttempts) {
         discoveryProbeTimer->stop();
-        updateConnectionStatus("未发现服务器");
+        updateConnectionStatus(QString::fromUtf8("未发现服务器"));
         return;
     }
 
@@ -267,7 +270,7 @@ void MainWindow::onServerDiscovered(const QString &message, const QString &sende
         return;
     }
 
-    updateConnectionStatus("发现服务器，正在连接...");
+    updateConnectionStatus(QString::fromUtf8("发现服务器，正在连接..."));
     tcpClient->connectToServer(senderIp, kServerPort);
 }
 
@@ -279,12 +282,12 @@ void MainWindow::updateConnectionStatus(const QString &status) {
 
 void MainWindow::onLoginRequested() {
     if (pendingAction != PendingAction::None) {
-        QMessageBox::information(this, "提示", "当前有请求正在处理中，请稍后再试。");
+        QMessageBox::information(this, QString::fromUtf8("提示"), QString::fromUtf8("当前有请求正在处理中，请稍后再试。"));
         return;
     }
 
     if (isLoggedIn) {
-        QMessageBox::information(this, "提示", "当前已有用户在线，请先退出当前账号再登录。");
+        QMessageBox::information(this, QString::fromUtf8("提示"), QString::fromUtf8("当前已有用户在线，请先退出当前账号再登录。"));
         return;
     }
 
@@ -295,7 +298,7 @@ void MainWindow::onLoginRequested() {
     const QString username = loginDialog->username();
     const QString password = loginDialog->password();
     if (username.isEmpty() || password.isEmpty()) {
-        QMessageBox::warning(this, "登录失败", "用户名和密码不能为空。");
+        QMessageBox::warning(this, QString::fromUtf8("登录失败"), QString::fromUtf8("用户名和密码不能为空。"));
         return;
     }
 
@@ -303,13 +306,13 @@ void MainWindow::onLoginRequested() {
     const QString command = "login -u " + escapeArg(username) + " -p " + escapeArg(password);
     if (!sendCommandLine(command, PendingAction::Login)) {
         pendingLoginUsername.clear();
-        QMessageBox::warning(this, "发送失败", "无法发送登录请求，请检查网络连接。");
+        QMessageBox::warning(this, QString::fromUtf8("发送失败"), QString::fromUtf8("无法发送登录请求，请检查网络连接。"));
     }
 }
 
 void MainWindow::onRegisterRequested() {
     if (pendingAction != PendingAction::None) {
-        QMessageBox::information(this, "提示", "当前有请求正在处理中，请稍后再试。");
+        QMessageBox::information(this, QString::fromUtf8("提示"), QString::fromUtf8("当前有请求正在处理中，请稍后再试。"));
         return;
     }
 
@@ -322,7 +325,7 @@ void MainWindow::onRegisterRequested() {
     const QString name = registerDialog->displayName();
     const QString email = registerDialog->email();
     if (username.isEmpty() || password.isEmpty() || name.isEmpty() || email.isEmpty()) {
-        QMessageBox::warning(this, "注册失败", "用户名、密码、姓名和邮箱不能为空。");
+        QMessageBox::warning(this, QString::fromUtf8("注册失败"), QString::fromUtf8("用户名、密码、姓名和邮箱不能为空。"));
         return;
     }
 
@@ -333,31 +336,37 @@ void MainWindow::onRegisterRequested() {
             + " -g 1";
 
     if (!sendCommandLine(command, PendingAction::Register)) {
-        QMessageBox::warning(this, "发送失败", "无法发送注册请求，请检查网络连接。");
+        QMessageBox::warning(this, QString::fromUtf8("发送失败"), QString::fromUtf8("无法发送注册请求，请检查网络连接。"));
     }
 }
 
 void MainWindow::onQueryTicketRequested(const QString &fromStation, const QString &toStation, const QString &date) {
     if (pendingAction != PendingAction::None) {
-        QMessageBox::information(this, "提示", "当前有请求正在处理中，请稍后再试。");
+        QMessageBox::information(this, QString::fromUtf8("提示"), QString::fromUtf8("当前有请求正在处理中，请稍后再试。"));
         return;
     }
 
     if (fromStation.isEmpty() || toStation.isEmpty()) {
-        QMessageBox::warning(this, "查询失败", "出发站和到达站不能为空。");
+        QMessageBox::warning(this, QString::fromUtf8("查询失败"), QString::fromUtf8("出发站和到达站不能为空。"));
         return;
     }
     if (fromStation == toStation) {
-        QMessageBox::warning(this, "查询失败", "出发站和到达站不能相同。");
+        QMessageBox::warning(this, QString::fromUtf8("查询失败"), QString::fromUtf8("出发站和到达站不能相同。"));
         return;
     }
 
-    const QString command = "query_ticket -s " + escapeArg(fromStation)
+    const bool isTransfer = homePageWidget && homePageWidget->queryWidget
+                            && homePageWidget->queryWidget->isTransferMode();
+    const QString cmdName = isTransfer ? "query_transfer" : "query_ticket";
+    const QString command = cmdName + " -s " + escapeArg(fromStation)
                           + " -t " + escapeArg(toStation)
                           + " -d " + date
                           + " -p time";
+
+    currentTicketDate = date;
+
     if (!sendCommandLine(command, PendingAction::QueryTicket)) {
-        QMessageBox::warning(this, "发送失败", "无法发送查询请求，请检查网络连接。");
+        QMessageBox::warning(this, QString::fromUtf8("发送失败"), QString::fromUtf8("无法发送查询请求，请检查网络连接。"));
         return;
     }
 
@@ -366,44 +375,254 @@ void MainWindow::onQueryTicketRequested(const QString &fromStation, const QStrin
     }
 }
 
-void MainWindow::onLogoutRequested() {
+void MainWindow::onBuyTicketRequested(const QString &trainName) {
     if (pendingAction != PendingAction::None) {
-        QMessageBox::information(this, "提示", "当前有请求正在处理中，请稍后再试。");
+        QMessageBox::information(this, QString::fromUtf8("提示"), QString::fromUtf8("当前有请求正在处理中，请稍后再试。"));
         return;
     }
 
     if (!isLoggedIn) {
-        QMessageBox::information(this, "提示", "当前尚未登录。");
+        QMessageBox::warning(this, QString::fromUtf8("提示"), QString::fromUtf8("请先登录后再购票。"));
         return;
     }
 
-    // Root 由服务端常驻维护，前端仅清理本地会话状态。
+    if (currentTicketDate.isEmpty()) {
+        QMessageBox::warning(this, QString::fromUtf8("提示"), QString::fromUtf8("请先查询车票后再购买。"));
+        return;
+    }
+
+    if (ticketPageWidget == nullptr || ticketPageWidget->tableWidget == nullptr) {
+        return;
+    }
+
+    int foundRow = -1;
+    for (int row = 0; row < ticketPageWidget->tableWidget->rowCount(); ++row) {
+        QTableWidgetItem *item = ticketPageWidget->tableWidget->item(row, 0);
+        if (item && item->text() == trainName) {
+            foundRow = row;
+            break;
+        }
+    }
+    if (foundRow < 0) {
+        return;
+    }
+
+    BuyTicketDialog::TicketInfo info;
+    info.trainName = trainName;
+    info.fromStation = ticketPageWidget->tableWidget->item(foundRow, 1)->text();
+    info.toStation = ticketPageWidget->tableWidget->item(foundRow, 2)->text();
+    info.departureTime = ticketPageWidget->tableWidget->item(foundRow, 3)->text();
+    info.arrivalTime = ticketPageWidget->tableWidget->item(foundRow, 4)->text();
+    info.price = ticketPageWidget->tableWidget->item(foundRow, 6)->text().toInt();
+    info.remain = ticketPageWidget->tableWidget->item(foundRow, 7)->text().toInt();
+    info.date = currentTicketDate;
+
+    BuyTicketDialog dialog(info, this);
+    if (dialog.exec() != QDialog::Accepted) {
+        return;
+    }
+
+    const int count = dialog.ticketCount();
+    const bool useQueue = dialog.useQueue();
+
+    QString command = "buy_ticket -u " + escapeArg(currentUsername)
+                    + " -i " + escapeArg(info.trainName)
+                    + " -d " + info.date
+                    + " -n " + QString::number(count)
+                    + " -f " + escapeArg(info.fromStation)
+                    + " -t " + escapeArg(info.toStation)
+                    + " -q " + (useQueue ? "true" : "false");
+
+    if (!sendCommandLine(command, PendingAction::BuyTicket)) {
+        QMessageBox::warning(this, QString::fromUtf8("发送失败"), QString::fromUtf8("无法发送购票请求，请检查网络连接。"));
+    }
+}
+
+void MainWindow::onRefundRequested(int orderIndex) {
+    if (pendingAction != PendingAction::None) {
+        QMessageBox::information(this, QString::fromUtf8("提示"), QString::fromUtf8("当前有请求正在处理中，请稍后再试。"));
+        return;
+    }
+
+    if (!isLoggedIn) {
+        QMessageBox::warning(this, QString::fromUtf8("提示"), QString::fromUtf8("请先登录后退票。"));
+        return;
+    }
+
+    if (orderPageWidget == nullptr || orderPageWidget->tableWidget == nullptr) {
+        return;
+    }
+
+    int foundRow = -1;
+    for (int row = 0; row < orderPageWidget->tableWidget->rowCount(); ++row) {
+        QTableWidgetItem *item = orderPageWidget->tableWidget->item(row, 0);
+        if (item && item->text().toInt() == orderIndex) {
+            foundRow = row;
+            break;
+        }
+    }
+    if (foundRow < 0) {
+        return;
+    }
+
+    RefundDialog::RefundInfo info;
+    info.orderIndex = orderIndex;
+    info.trainName = orderPageWidget->tableWidget->item(foundRow, 1)->text();
+    info.fromStation = orderPageWidget->tableWidget->item(foundRow, 2)->text();
+    info.toStation = orderPageWidget->tableWidget->item(foundRow, 3)->text();
+    info.departureTime = orderPageWidget->tableWidget->item(foundRow, 4)->text();
+    info.price = orderPageWidget->tableWidget->item(foundRow, 6)->text().toInt();
+    info.count = orderPageWidget->tableWidget->item(foundRow, 7)->text().toInt();
+    info.statusText = orderPageWidget->tableWidget->item(foundRow, 8)->text();
+
+    RefundDialog dialog(info, this);
+    if (dialog.exec() != QDialog::Accepted) {
+        return;
+    }
+
+    const QString command = "refund_ticket -u " + escapeArg(currentUsername)
+                          + " -n " + QString::number(orderIndex);
+
+    if (!sendCommandLine(command, PendingAction::RefundTicket)) {
+        QMessageBox::warning(this, QString::fromUtf8("发送失败"), QString::fromUtf8("无法发送退票请求，请检查网络连接。"));
+    }
+}
+
+void MainWindow::onOrderPageActivated() {
+    refreshOrders();
+}
+
+void MainWindow::onOrderRefreshRequested() {
+    refreshOrders();
+}
+
+void MainWindow::refreshOrders() {
+    if (pendingAction != PendingAction::None) {
+        return;
+    }
+    if (!isLoggedIn) {
+        orderPageWidget->clearOrders();
+        return;
+    }
+    const QString command = "query_order -u " + escapeArg(currentUsername);
+    sendCommandLine(command, PendingAction::QueryOrder);
+}
+
+void MainWindow::onAdminQueryTrainRequested(const QString &trainId) {
+    if (pendingAction != PendingAction::None) {
+        QMessageBox::information(this, QString::fromUtf8("提示"), QString::fromUtf8("当前有请求正在处理中，请稍后再试。"));
+        return;
+    }
+    const QString command = "query_train -i " + escapeArg(trainId);
+    if (!sendCommandLine(command, PendingAction::QueryTrain)) {
+        QMessageBox::warning(this, QString::fromUtf8("发送失败"), QString::fromUtf8("无法发送查询请求。"));
+    }
+}
+
+void MainWindow::onAdminReleaseTrainRequested(const QString &trainId) {
+    if (pendingAction != PendingAction::None) {
+        QMessageBox::information(this, QString::fromUtf8("提示"), QString::fromUtf8("当前有请求正在处理中，请稍后再试。"));
+        return;
+    }
+    const QString command = "release_train -i " + escapeArg(trainId);
+    if (!sendCommandLine(command, PendingAction::ReleaseTrain)) {
+        QMessageBox::warning(this, QString::fromUtf8("发送失败"), QString::fromUtf8("无法发送发布请求。"));
+    }
+}
+
+void MainWindow::onAdminDeleteTrainRequested(const QString &trainId) {
+    if (pendingAction != PendingAction::None) {
+        QMessageBox::information(this, QString::fromUtf8("提示"), QString::fromUtf8("当前有请求正在处理中，请稍后再试。"));
+        return;
+    }
+    QMessageBox::StandardButton reply = QMessageBox::question(
+        this, QString::fromUtf8("确认删除"),
+        QString::fromUtf8("确定要删除列车 ") + trainId + QString::fromUtf8(" 吗？"),
+        QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+    if (reply != QMessageBox::Yes) {
+        return;
+    }
+    const QString command = "delete_train -i " + escapeArg(trainId);
+    if (!sendCommandLine(command, PendingAction::DeleteTrain)) {
+        QMessageBox::warning(this, QString::fromUtf8("发送失败"), QString::fromUtf8("无法发送删除请求。"));
+    }
+}
+
+void MainWindow::onAdminAddTrainRequested(const QString &command) {
+    if (pendingAction != PendingAction::None) {
+        QMessageBox::information(this, QString::fromUtf8("提示"), QString::fromUtf8("当前有请求正在处理中，请稍后再试。"));
+        return;
+    }
+    if (!sendCommandLine(command, PendingAction::AddTrain)) {
+        QMessageBox::warning(this, QString::fromUtf8("发送失败"), QString::fromUtf8("无法发送添加请求。"));
+    }
+}
+
+void MainWindow::onAdminQueryProfileRequested(const QString &username) {
+    if (pendingAction != PendingAction::None) {
+        QMessageBox::information(this, QString::fromUtf8("提示"), QString::fromUtf8("当前有请求正在处理中，请稍后再试。"));
+        return;
+    }
+    const QString command = "query_profile -c " + escapeArg(currentUsername)
+                          + " -u " + escapeArg(username);
+    if (!sendCommandLine(command, PendingAction::AdminQueryProfile)) {
+        QMessageBox::warning(this, QString::fromUtf8("发送失败"), QString::fromUtf8("无法发送查询请求。"));
+    }
+}
+
+void MainWindow::onAdminAddUserRequested(const QString &username, const QString &password,
+                                          const QString &name, const QString &email, int privilege) {
+    if (pendingAction != PendingAction::None) {
+        QMessageBox::information(this, QString::fromUtf8("提示"), QString::fromUtf8("当前有请求正在处理中，请稍后再试。"));
+        return;
+    }
+    QString command = "add_user -c " + escapeArg(currentUsername)
+                    + " -u " + escapeArg(username)
+                    + " -p " + escapeArg(password)
+                    + " -n " + escapeArg(name)
+                    + " -m " + escapeArg(email)
+                    + " -g " + QString::number(privilege);
+    if (!sendCommandLine(command, PendingAction::AdminAddUser)) {
+        QMessageBox::warning(this, QString::fromUtf8("发送失败"), QString::fromUtf8("无法发送创建请求。"));
+    }
+}
+
+void MainWindow::onLogoutRequested() {
+    if (pendingAction != PendingAction::None) {
+        QMessageBox::information(this, QString::fromUtf8("提示"), QString::fromUtf8("当前有请求正在处理中，请稍后再试。"));
+        return;
+    }
+
+    if (!isLoggedIn) {
+        QMessageBox::information(this, QString::fromUtf8("提示"), QString::fromUtf8("当前尚未登录。"));
+        return;
+    }
+
     if (currentUsername == "root") {
         resetAuthState();
-        QMessageBox::information(this, "已退出", "已退出本地 root 会话。");
+        QMessageBox::information(this, QString::fromUtf8("已退出"), QString::fromUtf8("已退出本地 root 会话。"));
         return;
     }
 
     const QString command = "logout -u " + escapeArg(currentUsername);
     if (!sendCommandLine(command, PendingAction::Logout)) {
-        QMessageBox::warning(this, "发送失败", "无法发送登出请求，请检查网络连接。");
+        QMessageBox::warning(this, QString::fromUtf8("发送失败"), QString::fromUtf8("无法发送登出请求，请检查网络连接。"));
     }
 }
 
 void MainWindow::onProfileRequested() {
     if (pendingAction == PendingAction::QueryProfile) {
-        // 背景资料刷新未完成时，标记为完成后弹窗，避免阻塞用户操作。
         showProfileDialogOnQuery = true;
         return;
     }
 
     if (pendingAction != PendingAction::None) {
-        QMessageBox::information(this, "提示", "当前有请求正在处理中，请稍后再试。");
+        QMessageBox::information(this, QString::fromUtf8("提示"), QString::fromUtf8("当前有请求正在处理中，请稍后再试。"));
         return;
     }
 
     if (!isLoggedIn) {
-        QMessageBox::information(this, "提示", "请先登录后再查看个人信息。");
+        QMessageBox::information(this, QString::fromUtf8("提示"), QString::fromUtf8("请先登录后再查看个人信息。"));
         return;
     }
 
@@ -411,7 +630,7 @@ void MainWindow::onProfileRequested() {
     const QString command = "query_profile -c root -u " + escapeArg(currentUsername);
     if (!sendCommandLine(command, PendingAction::QueryProfile)) {
         showProfileDialogOnQuery = false;
-        QMessageBox::warning(this, "发送失败", "无法发送查询请求，请检查网络连接。");
+        QMessageBox::warning(this, QString::fromUtf8("发送失败"), QString::fromUtf8("无法发送查询请求，请检查网络连接。"));
     }
 }
 
@@ -455,21 +674,21 @@ void MainWindow::processServerResult(sjtu::ResultType type, const sjtu::Result &
             applyAuthState();
             pendingAction = PendingAction::None;
             showProfileDialogOnQuery = false;
-            QMessageBox::information(this, "登录成功", "登录成功。");
+            QMessageBox::information(this, QString::fromUtf8("登录成功"), QString::fromUtf8("登录成功。"));
             return;
         }
         pendingAction = PendingAction::None;
         pendingLoginUsername.clear();
-        QMessageBox::warning(this, "登录失败", "用户名或密码错误，或该用户已登录。");
+        QMessageBox::warning(this, QString::fromUtf8("登录失败"), QString::fromUtf8("用户名或密码错误，或该用户已登录。"));
         return;
     }
 
     if (pendingAction == PendingAction::Register) {
         pendingAction = PendingAction::None;
         if (type == sjtu::ResultType::Success) {
-            QMessageBox::information(this, "注册成功", "用户注册成功。");
+            QMessageBox::information(this, QString::fromUtf8("注册成功"), QString::fromUtf8("用户注册成功。"));
         } else {
-            QMessageBox::warning(this, "注册失败", "注册请求被服务器拒绝。");
+            QMessageBox::warning(this, QString::fromUtf8("注册失败"), QString::fromUtf8("注册请求被服务器拒绝。"));
         }
         return;
     }
@@ -479,11 +698,11 @@ void MainWindow::processServerResult(sjtu::ResultType type, const sjtu::Result &
         if (type == sjtu::ResultType::Success) {
             resetAuthState();
             if (!isShuttingDown) {
-                QMessageBox::information(this, "已退出", "当前用户已退出登录。");
+                QMessageBox::information(this, QString::fromUtf8("已退出"), QString::fromUtf8("当前用户已退出登录。"));
             }
         } else {
             if (!isShuttingDown) {
-                QMessageBox::warning(this, "退出失败", "退出登录失败，请稍后重试。");
+                QMessageBox::warning(this, QString::fromUtf8("退出失败"), QString::fromUtf8("退出登录失败，请稍后重试。"));
             }
         }
         return;
@@ -493,13 +712,13 @@ void MainWindow::processServerResult(sjtu::ResultType type, const sjtu::Result &
         pendingAction = PendingAction::None;
         if (type != sjtu::ResultType::Profile) {
             showProfileDialogOnQuery = false;
-            QMessageBox::warning(this, "查询失败", "无法获取个人信息。");
+            QMessageBox::warning(this, QString::fromUtf8("查询失败"), QString::fromUtf8("无法获取个人信息。"));
             return;
         }
         const auto *profile = dynamic_cast<const sjtu::ProfileResult *>(&result);
         if (profile == nullptr) {
             showProfileDialogOnQuery = false;
-            QMessageBox::warning(this, "查询失败", "个人信息解析失败。");
+            QMessageBox::warning(this, QString::fromUtf8("查询失败"), QString::fromUtf8("个人信息解析失败。"));
             return;
         }
 
@@ -519,46 +738,238 @@ void MainWindow::processServerResult(sjtu::ResultType type, const sjtu::Result &
 
     if (pendingAction == PendingAction::QueryTicket) {
         pendingAction = PendingAction::None;
-        if (type != sjtu::ResultType::Ticket) {
-            if (ticketPageWidget != nullptr) {
-                ticketPageWidget->clearTickets();
-            }
-            QMessageBox::warning(this, "查询结果", "未查询到可用车次。");
-            return;
-        }
-
-        const auto *ticketResult = dynamic_cast<const sjtu::TicketResult *>(&result);
-        if (ticketResult == nullptr) {
-            if (ticketPageWidget != nullptr) {
-                ticketPageWidget->clearTickets();
-            }
-            QMessageBox::warning(this, "查询失败", "车票结果解析失败。");
-            return;
-        }
 
         QVector<TicketListWidget::TicketListItem> displayTickets;
-        const auto &tickets = ticketResult->tickets();
-        displayTickets.reserve(static_cast<int>(tickets.size()));
 
-        for (size_t i = 0; i < tickets.size(); ++i) {
-            const auto &ticket = tickets[i];
-            TicketListWidget::TicketListItem item;
-            item.trainName = QString::fromStdString(ticket.train_id_.str());
-            item.startStation = QString::fromStdString(ticket.start_station_.str());
-            item.endStation = QString::fromStdString(ticket.end_station_.str());
-            item.departureTime = formatDateTime(ticket.departure_date_, ticket.departure_time_);
-            item.arrivalTime = formatDateTime(ticket.arrival_date_, ticket.arrival_time_);
-            item.durationMinutes = ticket.duration_;
-            item.departureSortKey = toMinutesKey(ticket.departure_date_, ticket.departure_time_);
-            item.arrivalSortKey = toMinutesKey(ticket.arrival_date_, ticket.arrival_time_);
-            item.price = ticket.price_;
-            item.remain = ticket.seat_;
-            displayTickets.push_back(item);
+        if (type == sjtu::ResultType::Ticket) {
+            const auto *ticketResult = dynamic_cast<const sjtu::TicketResult *>(&result);
+            if (ticketResult == nullptr) {
+                ticketPageWidget->clearTickets();
+                QMessageBox::warning(this, QString::fromUtf8("查询失败"), QString::fromUtf8("车票结果解析失败。"));
+                return;
+            }
+            const auto &tickets = ticketResult->tickets();
+            displayTickets.reserve(static_cast<int>(tickets.size()));
+            for (size_t i = 0; i < tickets.size(); ++i) {
+                const auto &ticket = tickets[i];
+                TicketListWidget::TicketListItem item;
+                item.trainName = QString::fromStdString(ticket.train_id_.str());
+                item.startStation = QString::fromStdString(ticket.start_station_.str());
+                item.endStation = QString::fromStdString(ticket.end_station_.str());
+                item.departureTime = formatDateTime(ticket.departure_date_, ticket.departure_time_);
+                item.arrivalTime = formatDateTime(ticket.arrival_date_, ticket.arrival_time_);
+                item.durationMinutes = ticket.duration_;
+                item.departureSortKey = toMinutesKey(ticket.departure_date_, ticket.departure_time_);
+                item.arrivalSortKey = toMinutesKey(ticket.arrival_date_, ticket.arrival_time_);
+                item.price = ticket.price_;
+                item.remain = ticket.seat_;
+                displayTickets.push_back(item);
+            }
+        } else if (type == sjtu::ResultType::Transfer) {
+            const auto *transferResult = dynamic_cast<const sjtu::TransferResult *>(&result);
+            if (transferResult == nullptr) {
+                ticketPageWidget->clearTickets();
+                QMessageBox::warning(this, QString::fromUtf8("查询失败"), QString::fromUtf8("换乘结果解析失败。"));
+                return;
+            }
+            const auto &transfers = transferResult->tickets();
+            displayTickets.reserve(static_cast<int>(transfers.size()));
+
+            for (size_t i = 0; i < transfers.size(); ++i) {
+                const auto &tt = transfers[i];
+                TicketListWidget::TicketListItem item;
+                item.trainName = QString::fromStdString(tt.first_ticket_.train_id_.str())
+                               + " → " + QString::fromStdString(tt.second_ticket_.train_id_.str());
+                item.startStation = QString::fromStdString(tt.first_ticket_.start_station_.str());
+                item.endStation = QString::fromStdString(tt.second_ticket_.end_station_.str());
+                item.departureTime = formatDateTime(tt.first_ticket_.departure_date_, tt.first_ticket_.departure_time_);
+                item.arrivalTime = formatDateTime(tt.second_ticket_.arrival_date_, tt.second_ticket_.arrival_time_);
+                item.durationMinutes = tt.duration_;
+                item.departureSortKey = toMinutesKey(tt.first_ticket_.departure_date_, tt.first_ticket_.departure_time_);
+                item.arrivalSortKey = toMinutesKey(tt.second_ticket_.arrival_date_, tt.second_ticket_.arrival_time_);
+                item.price = tt.price_;
+                item.remain = 0;
+                displayTickets.push_back(item);
+            }
+        } else {
+            ticketPageWidget->clearTickets();
+            QMessageBox::warning(this, QString::fromUtf8("查询结果"), QString::fromUtf8("未查询到可用车次。"));
+            return;
         }
 
-        if (ticketPageWidget != nullptr) {
-            ticketPageWidget->setTickets(displayTickets);
-            stackedPanel->setCurrentWidget(ticketPageWidget);
+        if (displayTickets.isEmpty()) {
+            ticketPageWidget->clearTickets();
+            QMessageBox::information(this, QString::fromUtf8("查询结果"), QString::fromUtf8("未查询到可用车次。"));
+            return;
+        }
+
+        ticketPageWidget->setTickets(displayTickets);
+        stackedPanel->setCurrentWidget(ticketPageWidget);
+        return;
+    }
+
+    if (pendingAction == PendingAction::BuyTicket) {
+        pendingAction = PendingAction::None;
+        if (type == sjtu::ResultType::Success) {
+            QMessageBox::information(this, QString::fromUtf8("购票成功"), QString::fromUtf8("车票购买成功。"));
+        } else {
+            QMessageBox::warning(this, QString::fromUtf8("购票失败"), QString::fromUtf8("购票请求被拒绝，可能余票不足。"));
+        }
+        return;
+    }
+
+    if (pendingAction == PendingAction::RefundTicket) {
+        pendingAction = PendingAction::None;
+        if (type == sjtu::ResultType::Success) {
+            QMessageBox::information(this, QString::fromUtf8("退票成功"), QString::fromUtf8("车票已成功退还。"));
+            refreshOrders();
+        } else {
+            QMessageBox::warning(this, QString::fromUtf8("退票失败"), QString::fromUtf8("退票请求被拒绝。"));
+        }
+        return;
+    }
+
+    if (pendingAction == PendingAction::QueryOrder) {
+        pendingAction = PendingAction::None;
+        if (type != sjtu::ResultType::Order) {
+            orderPageWidget->clearOrders();
+            QMessageBox::warning(this, QString::fromUtf8("查询失败"), QString::fromUtf8("无法获取订单信息。"));
+            return;
+        }
+        const auto *orderResult = dynamic_cast<const sjtu::OrderResult *>(&result);
+        if (orderResult == nullptr) {
+            orderPageWidget->clearOrders();
+            return;
+        }
+
+        const auto &orders = orderResult->orders();
+        QVector<OrdersPageWidget::OrderItem> displayOrders;
+        displayOrders.reserve(static_cast<int>(orders.size()));
+
+        for (size_t i = 0; i < orders.size(); ++i) {
+            const auto &order = orders[i];
+            OrdersPageWidget::OrderItem item;
+            item.index = static_cast<int>(i + 1);
+            item.trainName = QString::fromStdString(order.ticket_.train_id_.str());
+            item.startStation = QString::fromStdString(order.ticket_.start_station_.str());
+            item.endStation = QString::fromStdString(order.ticket_.end_station_.str());
+            item.departureTime = formatDateTime(order.ticket_.departure_date_, order.ticket_.departure_time_);
+            item.arrivalTime = formatDateTime(order.ticket_.arrival_date_, order.ticket_.arrival_time_);
+            item.price = order.ticket_.price_;
+            item.count = order.ticket_.seat_;
+            item.status = static_cast<int>(order.status_);
+            displayOrders.push_back(item);
+        }
+
+        orderPageWidget->setOrders(displayOrders);
+        return;
+    }
+
+    if (pendingAction == PendingAction::QueryTrain) {
+        pendingAction = PendingAction::None;
+        if (type != sjtu::ResultType::Train) {
+            managePageWidget->showTrainResult(
+                QString::fromUtf8("<span style='color:#dc2626;'>查询失败或列车不存在。</span>"));
+            return;
+        }
+        const auto *trainResult = dynamic_cast<const sjtu::TrainResult *>(&result);
+        if (trainResult == nullptr) {
+            managePageWidget->showTrainResult(
+                QString::fromUtf8("<span style='color:#dc2626;'>结果解析失败。</span>"));
+            return;
+        }
+
+        const auto &train = trainResult->train();
+        QString html = QString::fromUtf8("<b style='color:#16a34a;'>查询成功</b><br>");
+        html += QString::fromUtf8("列车编号: <b>") + QString::fromStdString(train.train_id_.str()) + "</b>";
+        html += QString::fromUtf8(" &nbsp; 类型: <b>") + QChar(train.type_) + "</b>";
+        html += QString::fromUtf8(" &nbsp; 站点数: <b>") + QString::number(train.station_num_) + "</b><br>";
+        html += QString::fromUtf8("<hr style='border-color:#e2e8f0;'>");
+        html += QString::fromUtf8("站点信息:<br>");
+        for (int i = 0; i < train.station_num_; ++i) {
+            const auto &st = train.stations_[i];
+            html += QString::fromUtf8("&nbsp;&nbsp;") + QString::number(i + 1) + ". "
+                  + QString::fromStdString(st.station_name_.str());
+            if (st.has_arrival_) {
+                html += QString::fromUtf8(" 到:") + formatTime(st.arrival_time_);
+            }
+            if (st.has_leaving_) {
+                html += QString::fromUtf8(" 发:") + formatTime(st.leaving_time_);
+            }
+            html += QString::fromUtf8(" ¥") + QString::number(st.price_);
+            html += QString::fromUtf8(" 余:") + QString::number(st.seat_);
+            html += "<br>";
+        }
+        managePageWidget->showTrainResult(html);
+        return;
+    }
+
+    if (pendingAction == PendingAction::ReleaseTrain) {
+        pendingAction = PendingAction::None;
+        if (type == sjtu::ResultType::Success) {
+            managePageWidget->showTrainResult(
+                QString::fromUtf8("<span style='color:#16a34a;'>列车发布成功。</span>"));
+        } else {
+            managePageWidget->showTrainResult(
+                QString::fromUtf8("<span style='color:#dc2626;'>发布失败，列车可能不存在或已发布。</span>"));
+        }
+        return;
+    }
+
+    if (pendingAction == PendingAction::DeleteTrain) {
+        pendingAction = PendingAction::None;
+        if (type == sjtu::ResultType::Success) {
+            managePageWidget->showTrainResult(
+                QString::fromUtf8("<span style='color:#16a34a;'>列车已成功删除。</span>"));
+        } else {
+            managePageWidget->showTrainResult(
+                QString::fromUtf8("<span style='color:#dc2626;'>删除失败，列车可能已发布或不存在。</span>"));
+        }
+        return;
+    }
+
+    if (pendingAction == PendingAction::AddTrain) {
+        pendingAction = PendingAction::None;
+        if (type == sjtu::ResultType::Success) {
+            managePageWidget->showTrainResult(
+                QString::fromUtf8("<span style='color:#16a34a;'>列车添加成功。</span>"));
+        } else {
+            managePageWidget->showTrainResult(
+                QString::fromUtf8("<span style='color:#dc2626;'>添加失败，请检查参数是否正确。</span>"));
+        }
+        return;
+    }
+
+    if (pendingAction == PendingAction::AdminQueryProfile) {
+        pendingAction = PendingAction::None;
+        if (type != sjtu::ResultType::Profile) {
+            managePageWidget->showUserResult(
+                QString::fromUtf8("<span style='color:#dc2626;'>查询失败，用户不存在或权限不足。</span>"));
+            return;
+        }
+        const auto *profile = dynamic_cast<const sjtu::ProfileResult *>(&result);
+        if (profile == nullptr) {
+            managePageWidget->showUserResult(
+                QString::fromUtf8("<span style='color:#dc2626;'>结果解析失败。</span>"));
+            return;
+        }
+        QString html = QString::fromUtf8("<b style='color:#16a34a;'>查询成功</b><br>");
+        html += QString::fromUtf8("用户名: <b>") + QString::fromStdString(profile->username()) + "</b><br>";
+        html += QString::fromUtf8("姓名: <b>") + QString::fromStdString(profile->name()) + "</b><br>";
+        html += QString::fromUtf8("邮箱: <b>") + QString::fromStdString(profile->email()) + "</b><br>";
+        html += QString::fromUtf8("权限等级: <b>") + QString::number(profile->privilege()) + "</b>";
+        managePageWidget->showUserResult(html);
+        return;
+    }
+
+    if (pendingAction == PendingAction::AdminAddUser) {
+        pendingAction = PendingAction::None;
+        if (type == sjtu::ResultType::Success) {
+            managePageWidget->showUserResult(
+                QString::fromUtf8("<span style='color:#16a34a;'>用户创建成功。</span>"));
+        } else {
+            managePageWidget->showUserResult(
+                QString::fromUtf8("<span style='color:#dc2626;'>创建失败，用户可能已存在或权限不足。</span>"));
         }
         return;
     }
@@ -624,14 +1035,13 @@ QString MainWindow::escapeArg(const QString &arg) {
 }
 
 void MainWindow::handleAuthChanged(const QString &msg) {
-    // setStatusMessage(msg);
 }
 
 void MainWindow::initializeComponents() {
     homePageWidget = new HomePageWidget(stackedPanel);
     ticketPageWidget = new TicketListWidget(stackedPanel);
-    orderPageWidget = new PlaceholderPageWidget("订单", stackedPanel);
-    managePageWidget = new PlaceholderPageWidget("管理", stackedPanel);
+    orderPageWidget = new OrdersPageWidget(stackedPanel);
+    managePageWidget = new AdminPageWidget(stackedPanel);
 
     stackedPanel->addWidget(homePageWidget);
     stackedPanel->addWidget(ticketPageWidget);
@@ -646,9 +1056,27 @@ void MainWindow::initializeComponents() {
         qDebug() << "Train name clicked:" << trainName;
     });
 
-    connect(ticketPageWidget, &TicketListWidget::purchaseRequested, this, [](const QString &trainName) {
-        qDebug() << "Purchase requested for train:" << trainName;
-    });
+    connect(ticketPageWidget, &TicketListWidget::purchaseRequested,
+            this, &MainWindow::onBuyTicketRequested);
+
+    connect(orderPageWidget, &OrdersPageWidget::refundRequested,
+            this, &MainWindow::onRefundRequested);
+
+    connect(orderPageWidget, &OrdersPageWidget::refreshRequested,
+            this, &MainWindow::onOrderRefreshRequested);
+
+    connect(managePageWidget, &AdminPageWidget::queryTrainRequested,
+            this, &MainWindow::onAdminQueryTrainRequested);
+    connect(managePageWidget, &AdminPageWidget::releaseTrainRequested,
+            this, &MainWindow::onAdminReleaseTrainRequested);
+    connect(managePageWidget, &AdminPageWidget::deleteTrainRequested,
+            this, &MainWindow::onAdminDeleteTrainRequested);
+    connect(managePageWidget, &AdminPageWidget::addTrainRequested,
+            this, &MainWindow::onAdminAddTrainRequested);
+    connect(managePageWidget, &AdminPageWidget::queryProfileRequested,
+            this, &MainWindow::onAdminQueryProfileRequested);
+    connect(managePageWidget, &AdminPageWidget::addUserRequested,
+            this, &MainWindow::onAdminAddUserRequested);
 
     connect(topBar, &TopBar::mainButtonClicked, this, [&]() {
         stackedPanel->setCurrentWidget(homePageWidget);
@@ -658,6 +1086,9 @@ void MainWindow::initializeComponents() {
     });
     connect(topBar, &TopBar::orderButtonClicked, this, [&]() {
         stackedPanel->setCurrentWidget(orderPageWidget);
+        if (isLoggedIn) {
+            onOrderPageActivated();
+        }
     });
     connect(topBar, &TopBar::manageButtonClicked, this, [&]() {
         stackedPanel->setCurrentWidget(managePageWidget);

@@ -1,5 +1,6 @@
 #include "client/widgets/ticket_query_widget.hpp"
 
+#include <QCheckBox>
 #include <QDate>
 #include <QDateEdit>
 #include <QFormLayout>
@@ -30,14 +31,19 @@ TicketQueryWidget::TicketQueryWidget(QWidget *parent) : QWidget(parent) {
 
     dateEdit = new QDateEdit(this);
     dateEdit->setDisplayFormat("MM-dd");
-    dateEdit->setDate(QDate(2025, 6, 1));
-    dateEdit->setMinimumDate(QDate(2025, 6, 1));
-    dateEdit->setMaximumDate(QDate(2025, 8, 31));
+    dateEdit->setDate(QDate(2026, 6, 1));
+    dateEdit->setMinimumDate(QDate(2026, 6, 1));
+    dateEdit->setMaximumDate(QDate(2026, 9, 30));
     dateEdit->setCalendarPopup(true);
 
     form->addRow("出发站", fromStationEdit);
     form->addRow("到达站", toStationEdit);
     form->addRow("出发日", dateEdit);
+
+    transferCheckBox = new QCheckBox(QString::fromUtf8("换乘查询"), this);
+    transferCheckBox->setObjectName("TransferCheckBox");
+    form->addRow("", transferCheckBox);
+
     root->addLayout(form);
 
     QHBoxLayout *actions = new QHBoxLayout();
@@ -72,6 +78,11 @@ TicketQueryWidget::TicketQueryWidget(QWidget *parent) : QWidget(parent) {
             border-color: #3d80de;
         }
 
+        #TicketQueryWidget QCheckBox#TransferCheckBox {
+            color: #355070;
+            font-size: 13px;
+        }
+
         #TicketQueryWidget QPushButton {
             border: none;
             border-radius: 6px;
@@ -84,6 +95,10 @@ TicketQueryWidget::TicketQueryWidget(QWidget *parent) : QWidget(parent) {
             background-color: #2f6fc6;
         }
     )");
+}
+
+bool TicketQueryWidget::isTransferMode() const {
+    return transferCheckBox != nullptr && transferCheckBox->isChecked();
 }
 
 void TicketQueryWidget::onSwapClicked() {

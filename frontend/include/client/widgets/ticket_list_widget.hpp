@@ -10,8 +10,12 @@ class QTableWidget;
 namespace sjtu {
 namespace client {
 
+class MainWindow;
+
 class TicketListWidget : public QWidget {
     Q_OBJECT
+
+    friend class MainWindow;
 
 public:
     struct TicketListItem {

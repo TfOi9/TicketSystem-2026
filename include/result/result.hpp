@@ -121,6 +121,8 @@ class OrderResult : public Result {
 public:
     OrderResult(const sjtu::vector<CompleteOrder>& orders) : Result(ResultType::Order), orders_(orders) {}
 
+    const sjtu::vector<CompleteOrder>& orders() const { return orders_; }
+
     void print(std::ostream& os) override;
 
     std::pair<const char *, uint32_t> serialize() override;
@@ -151,6 +153,8 @@ class TransferResult : public Result {
 public:
     TransferResult(const sjtu::vector<CompleteTransferTicket>& tickets) : Result(ResultType::Transfer), tickets_(tickets) {}
 
+    const sjtu::vector<CompleteTransferTicket>& tickets() const { return tickets_; }
+
     void print(std::ostream& os) override;
 
     std::pair<const char *, uint32_t> serialize() override;
@@ -164,6 +168,8 @@ class TrainResult : public Result {
 
 public:
     TrainResult(const TrainInfo& train) : Result(ResultType::Train), train_(train) {}
+
+    const TrainInfo& train() const { return train_; }
 
     void print(std::ostream& os) override;
 
