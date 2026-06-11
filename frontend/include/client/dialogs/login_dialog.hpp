@@ -4,6 +4,7 @@
 #include <QDialog>
 
 class QLineEdit;
+class QPushButton;
 
 namespace sjtu {
 namespace client {
@@ -17,9 +18,16 @@ public:
     QString username() const;
     QString password() const;
 
+    static bool validateUsername(const QString &username, QString &errorMsg);
+    static bool validatePassword(const QString &password, QString &errorMsg);
+
+private slots:
+    void togglePasswordVisibility();
+
 private:
     QLineEdit *usernameEdit;
     QLineEdit *passwordEdit;
+    QPushButton *togglePwdBtn;
 };
 
 } // namespace client

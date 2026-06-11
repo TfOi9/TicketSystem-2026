@@ -67,7 +67,7 @@ OrdersPageWidget::OrdersPageWidget(QWidget *parent)
 
     tableWidget = new QTableWidget(this);
     tableWidget->setObjectName("OrdersTable");
-    tableWidget->setColumnCount(9);
+    tableWidget->setColumnCount(10);
     tableWidget->setHorizontalHeaderLabels(
         {QString::fromUtf8("序号"), QString::fromUtf8("车次"), QString::fromUtf8("出发站"),
          QString::fromUtf8("到达站"), QString::fromUtf8("出发时间"), QString::fromUtf8("到达时间"),

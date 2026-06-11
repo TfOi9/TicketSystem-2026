@@ -11,6 +11,9 @@
 #include <QUdpSocket>
 #include <QTableWidget>
 #include <QTableWidgetItem>
+#include <QFileDialog>
+#include <QFile>
+#include <QTextStream>
 
 #include <iostream>
 
@@ -108,7 +111,10 @@ MainWindow::MainWindow(QWidget *parent)
         registerDialog(nullptr),
         profileDialog(nullptr),
         initialized(false),
-        isShuttingDown(false) {
+        isShuttingDown(false),
+        importTrainsIndex(0),
+        importTrainsSuccess(0),
+        importTrainsFail(0) {
     initalizeUI();
     setupNetworkClients();
     startServerDiscovery();
@@ -218,6 +224,7 @@ void MainWindow::setupNetworkClients() {
         pendingAction = PendingAction::None;
         pendingLoginUsername.clear();
         showProfileDialogOnQuery = false;
+        resetAuthState();
     });
 
     connect(tcpClient, &sjtu::TCPClient::error, this, [&](const QString &err) {
@@ -225,6 +232,7 @@ void MainWindow::setupNetworkClients() {
         pendingAction = PendingAction::None;
         pendingLoginUsername.clear();
         showProfileDialogOnQuery = false;
+        resetAuthState();
     });
 
     connect(udpClient, &sjtu::UDPClient::stringReceived, this, &MainWindow::onServerDiscovered);
@@ -297,8 +305,10 @@ void MainWindow::onLoginRequested() {
 
     const QString username = loginDialog->username();
     const QString password = loginDialog->password();
-    if (username.isEmpty() || password.isEmpty()) {
-        QMessageBox::warning(this, QString::fromUtf8("登录失败"), QString::fromUtf8("用户名和密码不能为空。"));
+
+    QString errorMsg;
+    if (!LoginDialog::validateUsername(username, errorMsg) || !LoginDialog::validatePassword(password, errorMsg)) {
+        QMessageBox::warning(this, QString::fromUtf8("输入错误"), errorMsg);
         return;
     }
 
@@ -324,8 +334,13 @@ void MainWindow::onRegisterRequested() {
     const QString password = registerDialog->password();
     const QString name = registerDialog->displayName();
     const QString email = registerDialog->email();
-    if (username.isEmpty() || password.isEmpty() || name.isEmpty() || email.isEmpty()) {
-        QMessageBox::warning(this, QString::fromUtf8("注册失败"), QString::fromUtf8("用户名、密码、姓名和邮箱不能为空。"));
+
+    QString errorMsg;
+    if (!RegisterDialog::validateUsername(username, errorMsg)
+        || !RegisterDialog::validatePassword(password, errorMsg)
+        || !RegisterDialog::validateName(name, errorMsg)
+        || !RegisterDialog::validateEmail(email, errorMsg)) {
+        QMessageBox::warning(this, QString::fromUtf8("输入错误"), errorMsg);
         return;
     }
 
@@ -508,12 +523,29 @@ void MainWindow::refreshOrders() {
     sendCommandLine(command, PendingAction::QueryOrder);
 }
 
-void MainWindow::onAdminQueryTrainRequested(const QString &trainId) {
+void MainWindow::onTrainScheduleRequested(const QString &trainName) {
     if (pendingAction != PendingAction::None) {
         QMessageBox::information(this, QString::fromUtf8("提示"), QString::fromUtf8("当前有请求正在处理中，请稍后再试。"));
         return;
     }
-    const QString command = "query_train -i " + escapeArg(trainId);
+    if (currentTicketDate.isEmpty()) {
+        QMessageBox::warning(this, QString::fromUtf8("提示"), QString::fromUtf8("请先查询车票后再查看时刻表。"));
+        return;
+    }
+    const QString command = "query_train -i " + escapeArg(trainName)
+                          + " -d " + currentTicketDate;
+    if (!sendCommandLine(command, PendingAction::QueryTrainSchedule)) {
+        QMessageBox::warning(this, QString::fromUtf8("发送失败"), QString::fromUtf8("无法发送时刻表查询请求。"));
+    }
+}
+
+void MainWindow::onAdminQueryTrainRequested(const QString &trainId, const QString &date) {
+    if (pendingAction != PendingAction::None) {
+        QMessageBox::information(this, QString::fromUtf8("提示"), QString::fromUtf8("当前有请求正在处理中，请稍后再试。"));
+        return;
+    }
+    const QString command = "query_train -i " + escapeArg(trainId)
+                          + " -d " + date;
     if (!sendCommandLine(command, PendingAction::QueryTrain)) {
         QMessageBox::warning(this, QString::fromUtf8("发送失败"), QString::fromUtf8("无法发送查询请求。"));
     }
@@ -627,7 +659,8 @@ void MainWindow::onProfileRequested() {
     }
 
     showProfileDialogOnQuery = true;
-    const QString command = "query_profile -c root -u " + escapeArg(currentUsername);
+    const QString command = "query_profile -c " + escapeArg(currentUsername)
+                          + " -u " + escapeArg(currentUsername);
     if (!sendCommandLine(command, PendingAction::QueryProfile)) {
         showProfileDialogOnQuery = false;
         QMessageBox::warning(this, QString::fromUtf8("发送失败"), QString::fromUtf8("无法发送查询请求，请检查网络连接。"));
@@ -667,19 +700,44 @@ void MainWindow::processServerResult(sjtu::ResultType type, const sjtu::Result &
 
     if (pendingAction == PendingAction::Login) {
         if (type == sjtu::ResultType::Success) {
-            currentUsername = pendingLoginUsername;
-            isLoggedIn = true;
-            currentPrivilege = (currentUsername == "root") ? 10 : 1;
-            pendingLoginUsername.clear();
-            applyAuthState();
-            pendingAction = PendingAction::None;
-            showProfileDialogOnQuery = false;
-            QMessageBox::information(this, QString::fromUtf8("登录成功"), QString::fromUtf8("登录成功。"));
+            pendingAction = PendingAction::PostLoginQueryProfile;
+            const QString command = "query_profile -c " + escapeArg(pendingLoginUsername)
+                                  + " -u " + escapeArg(pendingLoginUsername);
+            if (!sendCommandLine(command, PendingAction::PostLoginQueryProfile)) {
+                pendingAction = PendingAction::None;
+                pendingLoginUsername.clear();
+                QMessageBox::warning(this, QString::fromUtf8("登录失败"), QString::fromUtf8("无法查询用户信息，请重试。"));
+            }
             return;
         }
         pendingAction = PendingAction::None;
         pendingLoginUsername.clear();
         QMessageBox::warning(this, QString::fromUtf8("登录失败"), QString::fromUtf8("用户名或密码错误，或该用户已登录。"));
+        return;
+    }
+
+    if (pendingAction == PendingAction::PostLoginQueryProfile) {
+        pendingAction = PendingAction::None;
+        if (type == sjtu::ResultType::Profile) {
+            const auto *profile = dynamic_cast<const sjtu::ProfileResult *>(&result);
+            if (profile == nullptr) {
+                pendingLoginUsername.clear();
+                QMessageBox::warning(this, QString::fromUtf8("登录失败"), QString::fromUtf8("用户信息解析失败。"));
+                return;
+            }
+            currentUsername = QString::fromStdString(profile->username());
+            currentName = QString::fromStdString(profile->name());
+            currentEmail = QString::fromStdString(profile->email());
+            currentPrivilege = profile->privilege();
+            isLoggedIn = true;
+            pendingLoginUsername.clear();
+            applyAuthState();
+            QMessageBox::information(this, QString::fromUtf8("登录成功"),
+                QString::fromUtf8("欢迎，") + currentName + QString::fromUtf8("！"));
+            return;
+        }
+        pendingLoginUsername.clear();
+        QMessageBox::warning(this, QString::fromUtf8("登录失败"), QString::fromUtf8("登录凭据无效或查询被拒绝。"));
         return;
     }
 
@@ -726,7 +784,6 @@ void MainWindow::processServerResult(sjtu::ResultType type, const sjtu::Result &
         currentName = QString::fromStdString(profile->name());
         currentEmail = QString::fromStdString(profile->email());
         currentPrivilege = profile->privilege();
-        isLoggedIn = true;
         applyAuthState();
         if (showProfileDialogOnQuery) {
             profileDialog->setProfile(currentUsername, currentName, currentEmail, currentPrivilege);
@@ -811,9 +868,11 @@ void MainWindow::processServerResult(sjtu::ResultType type, const sjtu::Result &
     if (pendingAction == PendingAction::BuyTicket) {
         pendingAction = PendingAction::None;
         if (type == sjtu::ResultType::Success) {
-            QMessageBox::information(this, QString::fromUtf8("购票成功"), QString::fromUtf8("车票购买成功。"));
+            QMessageBox::information(this, QString::fromUtf8("购票请求已处理"),
+                QString::fromUtf8("车票购买成功，或已加入候补队列。可查看订单确认状态。"));
+            refreshOrders();
         } else {
-            QMessageBox::warning(this, QString::fromUtf8("购票失败"), QString::fromUtf8("购票请求被拒绝，可能余票不足。"));
+            QMessageBox::warning(this, QString::fromUtf8("购票失败"), QString::fromUtf8("购票请求被拒绝，可能余票不足或参数有误。"));
         }
         return;
     }
@@ -904,6 +963,39 @@ void MainWindow::processServerResult(sjtu::ResultType type, const sjtu::Result &
         return;
     }
 
+    if (pendingAction == PendingAction::QueryTrainSchedule) {
+        pendingAction = PendingAction::None;
+        if (type != sjtu::ResultType::Train) {
+            QMessageBox::warning(this, QString::fromUtf8("查询失败"), QString::fromUtf8("无法查询列车时刻表。"));
+            return;
+        }
+        const auto *trainResult = dynamic_cast<const sjtu::TrainResult *>(&result);
+        if (trainResult == nullptr) {
+            QMessageBox::warning(this, QString::fromUtf8("查询失败"), QString::fromUtf8("时刻表解析失败。"));
+            return;
+        }
+
+        const auto &train = trainResult->train();
+        QString html = QString::fromUtf8("<b>") + QString::fromStdString(train.train_id_.str())
+                     + "</b> " + QChar(train.type_) + QString::fromUtf8(" 时刻表<br><br>");
+        for (int i = 0; i < train.station_num_; ++i) {
+            const auto &st = train.stations_[i];
+            html += QString::fromUtf8("&nbsp;&nbsp;") + QString::number(i + 1) + ". "
+                  + QString::fromStdString(st.station_name_.str());
+            if (st.has_arrival_) {
+                html += QString::fromUtf8(" 到:") + formatTime(st.arrival_time_);
+            }
+            if (st.has_leaving_) {
+                html += QString::fromUtf8(" 发:") + formatTime(st.leaving_time_);
+            }
+            html += QString::fromUtf8(" ¥") + QString::number(st.price_);
+            html += QString::fromUtf8(" 余票:") + QString::number(st.seat_);
+            html += "<br>";
+        }
+        QMessageBox::information(this, QString::fromUtf8("列车时刻表"), html);
+        return;
+    }
+
     if (pendingAction == PendingAction::ReleaseTrain) {
         pendingAction = PendingAction::None;
         if (type == sjtu::ResultType::Success) {
@@ -937,6 +1029,17 @@ void MainWindow::processServerResult(sjtu::ResultType type, const sjtu::Result &
             managePageWidget->showTrainResult(
                 QString::fromUtf8("<span style='color:#dc2626;'>添加失败，请检查参数是否正确。</span>"));
         }
+        return;
+    }
+
+    if (pendingAction == PendingAction::ImportTrain) {
+        if (type == sjtu::ResultType::Success) {
+            ++importTrainsSuccess;
+        } else {
+            ++importTrainsFail;
+        }
+        ++importTrainsIndex;
+        sendNextImportTrain();
         return;
     }
 
@@ -1028,9 +1131,70 @@ void MainWindow::tryGracefulLogoutBeforeExit() {
     }
 }
 
+void MainWindow::onAdminImportTrainsRequested(const QString &filePath) {
+    if (pendingAction != PendingAction::None) {
+        QMessageBox::information(this, QString::fromUtf8("提示"), QString::fromUtf8("当前有请求正在处理中，请稍后再试。"));
+        return;
+    }
+
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QMessageBox::warning(this, QString::fromUtf8("导入失败"), QString::fromUtf8("无法打开文件。"));
+        return;
+    }
+
+    QTextStream in(&file);
+    importTrainsList.clear();
+    while (!in.atEnd()) {
+        QString line = in.readLine().trimmed();
+        if (!line.isEmpty() && line.startsWith("add_train")) {
+            importTrainsList.append(line);
+        }
+    }
+    file.close();
+
+    if (importTrainsList.isEmpty()) {
+        QMessageBox::information(this, QString::fromUtf8("导入"), QString::fromUtf8("文件中没有找到 add_train 语句。"));
+        return;
+    }
+
+    importTrainsIndex = 0;
+    importTrainsSuccess = 0;
+    importTrainsFail = 0;
+    sendNextImportTrain();
+}
+
+void MainWindow::sendNextImportTrain() {
+    if (importTrainsIndex >= importTrainsList.size()) {
+        const int total = importTrainsList.size();
+        managePageWidget->showTrainResult(
+            QString::fromUtf8("<span style='color:#16a34a;'>导入完成！</span>")
+            + QString::fromUtf8("共 ") + QString::number(total) + QString::fromUtf8(" 条：")
+            + QString::fromUtf8("成功 ") + QString::number(importTrainsSuccess)
+            + QString::fromUtf8("，失败 ") + QString::number(importTrainsFail));
+        pendingAction = PendingAction::None;
+        return;
+    }
+
+    const QString command = importTrainsList.at(importTrainsIndex);
+    if (!sendCommandLine(command, PendingAction::ImportTrain)) {
+        QMessageBox::warning(this, QString::fromUtf8("发送失败"),
+            QString::fromUtf8("导入中断：无法发送第 ")
+            + QString::number(importTrainsIndex + 1) + QString::fromUtf8(" 条命令。"));
+        managePageWidget->showTrainResult(
+            QString::fromUtf8("<span style='color:#dc2626;'>导入中断：成功 ") + QString::number(importTrainsSuccess)
+            + QString::fromUtf8("，失败 ") + QString::number(importTrainsFail + (importTrainsList.size() - importTrainsIndex))
+            + QString::fromUtf8("</span>"));
+        pendingAction = PendingAction::None;
+    }
+}
+
 QString MainWindow::escapeArg(const QString &arg) {
+    if (arg.contains(' ')) {
+        qWarning() << "argument contains space, which is not allowed:" << arg;
+    }
     QString escaped = arg;
-    escaped.replace(' ', "_");
+    escaped.replace(' ', '_');
     return escaped;
 }
 
@@ -1052,9 +1216,8 @@ void MainWindow::initializeComponents() {
     connect(homePageWidget, &HomePageWidget::queryTicketRequested,
             this, &MainWindow::onQueryTicketRequested);
 
-    connect(ticketPageWidget, &TicketListWidget::trainNameClicked, this, [](const QString &trainName) {
-        qDebug() << "Train name clicked:" << trainName;
-    });
+    connect(ticketPageWidget, &TicketListWidget::trainNameClicked,
+            this, &MainWindow::onTrainScheduleRequested);
 
     connect(ticketPageWidget, &TicketListWidget::purchaseRequested,
             this, &MainWindow::onBuyTicketRequested);
@@ -1073,6 +1236,8 @@ void MainWindow::initializeComponents() {
             this, &MainWindow::onAdminDeleteTrainRequested);
     connect(managePageWidget, &AdminPageWidget::addTrainRequested,
             this, &MainWindow::onAdminAddTrainRequested);
+    connect(managePageWidget, &AdminPageWidget::importTrainsRequested,
+            this, &MainWindow::onAdminImportTrainsRequested);
     connect(managePageWidget, &AdminPageWidget::queryProfileRequested,
             this, &MainWindow::onAdminQueryProfileRequested);
     connect(managePageWidget, &AdminPageWidget::addUserRequested,

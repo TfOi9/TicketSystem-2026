@@ -59,20 +59,23 @@ private slots:
     void onQueryTicketRequested(const QString &fromStation, const QString &toStation, const QString &date);
     void onBuyTicketRequested(const QString &trainName);
     void onRefundRequested(int orderIndex);
+    void onTrainScheduleRequested(const QString &trainName);
     void onOrderPageActivated();
     void onOrderRefreshRequested();
-    void onAdminQueryTrainRequested(const QString &trainId);
+    void onAdminQueryTrainRequested(const QString &trainId, const QString &date);
     void onAdminReleaseTrainRequested(const QString &trainId);
     void onAdminDeleteTrainRequested(const QString &trainId);
     void onAdminAddTrainRequested(const QString &command);
     void onAdminQueryProfileRequested(const QString &username);
     void onAdminAddUserRequested(const QString &username, const QString &password,
                                  const QString &name, const QString &email, int privilege);
+    void onAdminImportTrainsRequested(const QString &filePath);
 
 private:
     enum class PendingAction {
         None,
         Login,
+        PostLoginQueryProfile,
         Register,
         Logout,
         QueryProfile,
@@ -81,9 +84,11 @@ private:
         RefundTicket,
         QueryOrder,
         QueryTrain,
+        QueryTrainSchedule,
         ReleaseTrain,
         DeleteTrain,
         AddTrain,
+        ImportTrain,
         AdminQueryProfile,
         AdminAddUser
     };
@@ -99,6 +104,7 @@ private:
     void tryGracefulLogoutBeforeExit();
     static QString escapeArg(const QString &arg);
     void refreshOrders();
+    void sendNextImportTrain();
 
     TopBar *topBar;
     StatusBar *statusBarWidget;
@@ -134,6 +140,11 @@ private:
     TicketListWidget::TicketListItem currentTicketContext;
     QString currentTicketDate;
     OrdersPageWidget::OrderItem currentRefundContext;
+
+    QStringList importTrainsList;
+    int importTrainsIndex;
+    int importTrainsSuccess;
+    int importTrainsFail;
 
     static constexpr quint16 kDiscoveryPort = 45454;
     static constexpr quint16 kServerPort = 1145;

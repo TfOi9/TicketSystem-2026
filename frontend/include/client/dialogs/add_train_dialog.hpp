@@ -22,8 +22,8 @@ public:
 private:
     QLineEdit *trainIdEdit;
     QSpinBox *stationCountSpin;
+    QSpinBox *seatNumSpin;
     QLineEdit *stationsEdit;
-    QLineEdit *seatsEdit;
     QLineEdit *pricesEdit;
     QLineEdit *startTimeEdit;
     QLineEdit *travelTimesEdit;

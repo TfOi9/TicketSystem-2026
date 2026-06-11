@@ -229,6 +229,15 @@ add_executable(type_helper_test
 	test/type_helper_test.cpp
 )
 
+add_executable(frontend_validation_test
+	test/frontend_validation_test.cpp
+	frontend/include/client/dialogs/login_dialog.hpp
+	frontend/src/client/dialogs/login_dialog.cpp
+	frontend/include/client/dialogs/register_dialog.hpp
+	frontend/src/client/dialogs/register_dialog.cpp
+)
+target_link_libraries(frontend_validation_test Qt6::Core Qt6::Widgets)
+
 add_test(NAME fixed_string_test COMMAND fixed_string_test)
 add_test(NAME type_helper_test COMMAND type_helper_test)
 add_test(NAME tlvpacket_test COMMAND tlvpacket_test)
@@ -239,6 +248,7 @@ add_test(NAME tcp_test COMMAND tcp_test)
 add_test(NAME tcp_tlv_mixed_test COMMAND tcp_tlv_mixed_test)
 add_test(NAME tcp_robustness_test COMMAND tcp_robustness_test)
 add_test(NAME tcp_large_robustness_test COMMAND tcp_large_robustness_test)
+add_test(NAME frontend_validation_test COMMAND frontend_validation_test)
 
 # WARNING: this test is very large, may take up to 5min or more!
 # add_test(

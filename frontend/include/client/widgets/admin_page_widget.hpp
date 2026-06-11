@@ -25,10 +25,11 @@ public:
     void clearResults();
 
 signals:
-    void queryTrainRequested(const QString &trainId);
+    void queryTrainRequested(const QString &trainId, const QString &date);
     void releaseTrainRequested(const QString &trainId);
     void deleteTrainRequested(const QString &trainId);
     void addTrainRequested(const QString &command);
+    void importTrainsRequested(const QString &filePath);
     void queryProfileRequested(const QString &username);
     void addUserRequested(const QString &username, const QString &password,
                           const QString &name, const QString &email, int privilege);
@@ -38,15 +39,18 @@ private slots:
     void onReleaseTrainClicked();
     void onDeleteTrainClicked();
     void onAddTrainClicked();
+    void onImportTrainsClicked();
     void onQueryProfileClicked();
     void onAddUserClicked();
 
 private:
     QLineEdit *trainIdEdit;
+    QDateEdit *trainDateEdit;
     QPushButton *queryTrainButton;
     QPushButton *releaseTrainButton;
     QPushButton *deleteTrainButton;
     QPushButton *addTrainButton;
+    QPushButton *importTrainButton;
 
     QLineEdit *usernameEdit;
     QPushButton *queryUserButton;

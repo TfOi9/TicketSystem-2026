@@ -3,6 +3,7 @@
 
 #include <QDate>
 #include <QDateEdit>
+#include <QFileDialog>
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QHBoxLayout>
@@ -42,7 +43,17 @@ AdminPageWidget::AdminPageWidget(QWidget *parent) : QWidget(parent) {
     trainIdLabel->setObjectName("AdminLabel");
     trainIdEdit = new QLineEdit(trainGroup);
     trainIdEdit->setPlaceholderText(QString::fromUtf8("例如：G101"));
-    trainIdEdit->setMinimumWidth(160);
+    trainIdEdit->setMinimumWidth(100);
+
+    QLabel *trainDateLabel = new QLabel(QString::fromUtf8("日期"), trainGroup);
+    trainDateLabel->setObjectName("AdminLabel");
+    trainDateEdit = new QDateEdit(trainGroup);
+    trainDateEdit->setDisplayFormat("MM-dd");
+    trainDateEdit->setDate(QDate(2026, 6, 1));
+    trainDateEdit->setMinimumDate(QDate(2026, 6, 1));
+    trainDateEdit->setMaximumDate(QDate(2026, 8, 31));
+    trainDateEdit->setCalendarPopup(true);
+    trainDateEdit->setFixedWidth(100);
 
     queryTrainButton = new QPushButton(QString::fromUtf8("查询列车"), trainGroup);
     queryTrainButton->setObjectName("AdminBtnPrimary");
@@ -52,13 +63,18 @@ AdminPageWidget::AdminPageWidget(QWidget *parent) : QWidget(parent) {
     deleteTrainButton->setObjectName("AdminBtnDanger");
     addTrainButton = new QPushButton(QString::fromUtf8("添加列车"), trainGroup);
     addTrainButton->setObjectName("AdminBtnPrimary");
+    importTrainButton = new QPushButton(QString::fromUtf8("导入火车"), trainGroup);
+    importTrainButton->setObjectName("AdminBtnPrimary");
 
     trainIdRow->addWidget(trainIdLabel);
     trainIdRow->addWidget(trainIdEdit);
+    trainIdRow->addWidget(trainDateLabel);
+    trainIdRow->addWidget(trainDateEdit);
     trainIdRow->addWidget(queryTrainButton);
     trainIdRow->addWidget(releaseTrainButton);
     trainIdRow->addWidget(deleteTrainButton);
     trainIdRow->addWidget(addTrainButton);
+    trainIdRow->addWidget(importTrainButton);
     trainIdRow->addStretch(1);
     trainLayout->addLayout(trainIdRow);
 
@@ -115,6 +131,7 @@ AdminPageWidget::AdminPageWidget(QWidget *parent) : QWidget(parent) {
     connect(releaseTrainButton, &QPushButton::clicked, this, &AdminPageWidget::onReleaseTrainClicked);
     connect(deleteTrainButton, &QPushButton::clicked, this, &AdminPageWidget::onDeleteTrainClicked);
     connect(addTrainButton, &QPushButton::clicked, this, &AdminPageWidget::onAddTrainClicked);
+    connect(importTrainButton, &QPushButton::clicked, this, &AdminPageWidget::onImportTrainsClicked);
     connect(queryUserButton, &QPushButton::clicked, this, &AdminPageWidget::onQueryProfileClicked);
     connect(addUserButton, &QPushButton::clicked, this, &AdminPageWidget::onAddUserClicked);
 
@@ -170,6 +187,14 @@ AdminPageWidget::AdminPageWidget(QWidget *parent) : QWidget(parent) {
 
         #AdminPage QLineEdit:focus {
             border-color: #3d80de;
+        }
+
+        #AdminPage QDateEdit {
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 4px 6px;
+            min-height: 20px;
+            background-color: #ffffff;
         }
 
         QPushButton#AdminBtnPrimary {
@@ -229,7 +254,8 @@ void AdminPageWidget::onQueryTrainClicked() {
         showTrainResult(QString::fromUtf8("<span style='color:#dc2626;'>请输入列车编号。</span>"));
         return;
     }
-    emit queryTrainRequested(trainId);
+    const QString date = trainDateEdit->date().toString("MM-dd");
+    emit queryTrainRequested(trainId, date);
 }
 
 void AdminPageWidget::onReleaseTrainClicked() {
@@ -260,6 +286,19 @@ void AdminPageWidget::onAddTrainClicked() {
         }
         emit addTrainRequested(cmd);
     }
+}
+
+void AdminPageWidget::onImportTrainsClicked() {
+    const QString filePath = QFileDialog::getOpenFileName(
+        this,
+        QString::fromUtf8("选择火车信息文件"),
+        QString(),
+        QString::fromUtf8("文本文件 (*.txt);;所有文件 (*)")
+    );
+    if (filePath.isEmpty()) {
+        return;
+    }
+    emit importTrainsRequested(filePath);
 }
 
 void AdminPageWidget::onQueryProfileClicked() {

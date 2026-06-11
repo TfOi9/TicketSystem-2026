@@ -110,7 +110,7 @@ MainWindow (QMainWindow, 1240x800)
 - 表格展示查询结果：车次名、出发站、到达站、出发/到达时间、历时、价格、余票
 - 支持按列排序（时间、价格、历时使用数值比较）
 - 每行「购票」按钮，点击弹出 `BuyTicketDialog`
-- 车次名可点击（蓝色链接样式）
+- 车次名可点击（蓝色链接样式），点击后弹出该列车时刻表对话框（`query_train`）
 
 ### 订单管理页 (OrdersPageWidget)
 
@@ -141,7 +141,7 @@ MainWindow (QMainWindow, 1240x800)
 | ProfileDialog | 只读个人信息展示 | `query_profile` |
 | BuyTicketDialog | 确认购买：显示车次信息、余票、购票张数、候补选项 | `buy_ticket` |
 | RefundDialog | 确认退票：显示订单详情和警告 | `refund_ticket` |
-| AddTrainDialog | 完整列车参数表单 | `add_train` |
+| AddTrainDialog | 完整列车参数表单 (`-i -n -m -s -p -x -t -o -d -y`) | `add_train` |
 
 ## 视觉设计规范
 

@@ -4,13 +4,15 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
+#include <QMessageBox>
 #include <QPushButton>
+#include <QRegularExpression>
 #include <QVBoxLayout>
 
 namespace sjtu::client {
 
 RegisterDialog::RegisterDialog(QWidget *parent) : QDialog(parent) {
-    setWindowTitle("注册用户");
+    setWindowTitle(QString::fromUtf8("注册用户"));
     setModal(true);
     setMinimumWidth(380);
 
@@ -18,7 +20,7 @@ RegisterDialog::RegisterDialog(QWidget *parent) : QDialog(parent) {
     root->setContentsMargins(16, 16, 16, 16);
     root->setSpacing(12);
 
-    QLabel *title = new QLabel("创建新用户", this);
+    QLabel *title = new QLabel(QString::fromUtf8("创建新用户"), this);
     title->setObjectName("DialogTitle");
     root->addWidget(title);
 
@@ -28,32 +30,72 @@ RegisterDialog::RegisterDialog(QWidget *parent) : QDialog(parent) {
     form->setVerticalSpacing(10);
 
     usernameEdit = new QLineEdit(this);
-    usernameEdit->setPlaceholderText("用户名");
-    passwordEdit = new QLineEdit(this);
-    passwordEdit->setPlaceholderText("密码");
-    passwordEdit->setEchoMode(QLineEdit::Password);
-    nameEdit = new QLineEdit(this);
-    nameEdit->setPlaceholderText("姓名");
-    emailEdit = new QLineEdit(this);
-    emailEdit->setPlaceholderText("邮箱");
+    usernameEdit->setPlaceholderText(QString::fromUtf8("用户名"));
+    usernameEdit->setMaxLength(20);
 
-    form->addRow("用户名", usernameEdit);
-    form->addRow("密码", passwordEdit);
-    form->addRow("姓名", nameEdit);
-    form->addRow("邮箱", emailEdit);
+    passwordEdit = new QLineEdit(this);
+    passwordEdit->setPlaceholderText(QString::fromUtf8("密码"));
+    passwordEdit->setEchoMode(QLineEdit::Password);
+
+    QHBoxLayout *pwdRow = new QHBoxLayout();
+    pwdRow->setSpacing(0);
+    pwdRow->addWidget(passwordEdit);
+
+    togglePwdBtn = new QPushButton(QString::fromUtf8("👁"), this);
+    togglePwdBtn->setFixedSize(28, 28);
+    togglePwdBtn->setCheckable(true);
+    togglePwdBtn->setFlat(true);
+    togglePwdBtn->setCursor(Qt::PointingHandCursor);
+    togglePwdBtn->setToolTip(QString::fromUtf8("显示/隐藏密码"));
+    pwdRow->addWidget(togglePwdBtn);
+
+    nameEdit = new QLineEdit(this);
+    nameEdit->setPlaceholderText(QString::fromUtf8("姓名（2-5个汉字）"));
+
+    emailEdit = new QLineEdit(this);
+    emailEdit->setPlaceholderText(QString::fromUtf8("邮箱"));
+
+    form->addRow(QString::fromUtf8("用户名"), usernameEdit);
+    form->addRow(QString::fromUtf8("密码"), pwdRow);
+    form->addRow(QString::fromUtf8("姓名"), nameEdit);
+    form->addRow(QString::fromUtf8("邮箱"), emailEdit);
     root->addLayout(form);
 
     QHBoxLayout *buttonRow = new QHBoxLayout();
     buttonRow->addStretch(1);
-    QPushButton *cancel = new QPushButton("取消", this);
-    QPushButton *confirm = new QPushButton("注册", this);
+    QPushButton *cancel = new QPushButton(QString::fromUtf8("取消"), this);
+    QPushButton *confirm = new QPushButton(QString::fromUtf8("注册"), this);
     confirm->setDefault(true);
     buttonRow->addWidget(cancel);
     buttonRow->addWidget(confirm);
     root->addLayout(buttonRow);
 
     connect(cancel, &QPushButton::clicked, this, &QDialog::reject);
-    connect(confirm, &QPushButton::clicked, this, &QDialog::accept);
+    connect(confirm, &QPushButton::clicked, this, [this]() {
+        const QString uname = usernameEdit->text().trimmed();
+        const QString pwd = passwordEdit->text();
+        const QString nm = nameEdit->text().trimmed();
+        const QString em = emailEdit->text().trimmed();
+        QString errorMsg;
+        if (!validateUsername(uname, errorMsg)) {
+            QMessageBox::warning(this, QString::fromUtf8("输入错误"), errorMsg);
+            return;
+        }
+        if (!validatePassword(pwd, errorMsg)) {
+            QMessageBox::warning(this, QString::fromUtf8("输入错误"), errorMsg);
+            return;
+        }
+        if (!validateName(nm, errorMsg)) {
+            QMessageBox::warning(this, QString::fromUtf8("输入错误"), errorMsg);
+            return;
+        }
+        if (!validateEmail(em, errorMsg)) {
+            QMessageBox::warning(this, QString::fromUtf8("输入错误"), errorMsg);
+            return;
+        }
+        accept();
+    });
+    connect(togglePwdBtn, &QPushButton::toggled, this, &RegisterDialog::togglePasswordVisibility);
 
     setStyleSheet(R"(
         QDialog {
@@ -86,6 +128,14 @@ RegisterDialog::RegisterDialog(QWidget *parent) : QDialog(parent) {
     )");
 }
 
+void RegisterDialog::togglePasswordVisibility() {
+    if (passwordEdit->echoMode() == QLineEdit::Password) {
+        passwordEdit->setEchoMode(QLineEdit::Normal);
+    } else {
+        passwordEdit->setEchoMode(QLineEdit::Password);
+    }
+}
+
 QString RegisterDialog::username() const {
     return usernameEdit->text().trimmed();
 }
@@ -100,6 +150,75 @@ QString RegisterDialog::displayName() const {
 
 QString RegisterDialog::email() const {
     return emailEdit->text().trimmed();
+}
+
+bool RegisterDialog::validateUsername(const QString &username, QString &errorMsg) {
+    if (username.isEmpty()) {
+        errorMsg = QString::fromUtf8("用户名不能为空。");
+        return false;
+    }
+    if (username.length() > 20) {
+        errorMsg = QString::fromUtf8("用户名长度不能超过 20 个字符。");
+        return false;
+    }
+    QRegularExpression re("^[a-zA-Z][a-zA-Z0-9_]*$");
+    if (!re.match(username).hasMatch()) {
+        errorMsg = QString::fromUtf8("用户名必须以字母开头，且仅包含字母、数字和下划线。");
+        return false;
+    }
+    return true;
+}
+
+bool RegisterDialog::validatePassword(const QString &password, QString &errorMsg) {
+    if (password.isEmpty()) {
+        errorMsg = QString::fromUtf8("密码不能为空。");
+        return false;
+    }
+    if (password.length() < 1 || password.length() > 30) {
+        errorMsg = QString::fromUtf8("密码长度必须在 1 到 30 个字符之间。");
+        return false;
+    }
+    for (const QChar &ch : password) {
+        if (!ch.isPrint() || ch == QChar(' ')) {
+            errorMsg = QString::fromUtf8("密码只能包含可打印字符（不含空格）。");
+            return false;
+        }
+    }
+    return true;
+}
+
+bool RegisterDialog::validateName(const QString &name, QString &errorMsg) {
+    if (name.isEmpty()) {
+        errorMsg = QString::fromUtf8("姓名不能为空。");
+        return false;
+    }
+    int len = 0;
+    for (const QChar &ch : name) {
+        ushort uc = ch.unicode();
+        if (uc >= 0x4E00 && uc <= 0x9FFF) {
+            ++len;
+        } else {
+            errorMsg = QString::fromUtf8("姓名必须由 2 至 5 个汉字组成。");
+            return false;
+        }
+    }
+    if (len < 2 || len > 5) {
+        errorMsg = QString::fromUtf8("姓名必须由 2 至 5 个汉字组成。");
+        return false;
+    }
+    return true;
+}
+
+bool RegisterDialog::validateEmail(const QString &email, QString &errorMsg) {
+    if (email.isEmpty()) {
+        errorMsg = QString::fromUtf8("邮箱不能为空。");
+        return false;
+    }
+    if (email.length() > 30) {
+        errorMsg = QString::fromUtf8("邮箱长度不能超过 30 个字符。");
+        return false;
+    }
+    return true;
 }
 
 } // namespace sjtu::client
