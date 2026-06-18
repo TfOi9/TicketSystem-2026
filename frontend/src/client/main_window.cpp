@@ -14,6 +14,7 @@
 #include <QFileDialog>
 #include <QFile>
 #include <QTextStream>
+#include <QRegularExpression>
 
 #include <iostream>
 
@@ -114,7 +115,10 @@ MainWindow::MainWindow(QWidget *parent)
         isShuttingDown(false),
         importTrainsIndex(0),
         importTrainsSuccess(0),
-        importTrainsFail(0) {
+        importTrainsFail(0),
+        batchReleaseIndex(0),
+        batchReleaseSuccess(0),
+        batchReleaseFail(0) {
     initalizeUI();
     setupNetworkClients();
     startServerDiscovery();
@@ -406,30 +410,25 @@ void MainWindow::onBuyTicketRequested(const QString &trainName) {
         return;
     }
 
-    if (ticketPageWidget == nullptr || ticketPageWidget->tableWidget == nullptr) {
-        return;
-    }
-
-    int foundRow = -1;
-    for (int row = 0; row < ticketPageWidget->tableWidget->rowCount(); ++row) {
-        QTableWidgetItem *item = ticketPageWidget->tableWidget->item(row, 0);
-        if (item && item->text() == trainName) {
-            foundRow = row;
+    const TicketListWidget::TicketListItem *ticketItem = nullptr;
+    for (const auto &item : currentTicketList) {
+        if (item.trainName == trainName) {
+            ticketItem = &item;
             break;
         }
     }
-    if (foundRow < 0) {
+    if (ticketItem == nullptr) {
         return;
     }
 
     BuyTicketDialog::TicketInfo info;
-    info.trainName = trainName;
-    info.fromStation = ticketPageWidget->tableWidget->item(foundRow, 1)->text();
-    info.toStation = ticketPageWidget->tableWidget->item(foundRow, 2)->text();
-    info.departureTime = ticketPageWidget->tableWidget->item(foundRow, 3)->text();
-    info.arrivalTime = ticketPageWidget->tableWidget->item(foundRow, 4)->text();
-    info.price = ticketPageWidget->tableWidget->item(foundRow, 6)->text().toInt();
-    info.remain = ticketPageWidget->tableWidget->item(foundRow, 7)->text().toInt();
+    info.trainName = ticketItem->trainName;
+    info.fromStation = ticketItem->startStation;
+    info.toStation = ticketItem->endStation;
+    info.departureTime = ticketItem->departureTime;
+    info.arrivalTime = ticketItem->arrivalTime;
+    info.price = ticketItem->price;
+    info.remain = ticketItem->remain;
     info.date = currentTicketDate;
 
     BuyTicketDialog dialog(info, this);
@@ -439,6 +438,22 @@ void MainWindow::onBuyTicketRequested(const QString &trainName) {
 
     const int count = dialog.ticketCount();
     const bool useQueue = dialog.useQueue();
+
+    if (ticketItem->isTransfer) {
+        pendingTransferCount = count;
+        pendingTransferUseQueue = useQueue;
+        const QString firstCmd = "buy_ticket -u " + escapeArg(currentUsername)
+                    + " -i " + escapeArg(ticketItem->firstTrainId)
+                    + " -d " + ticketItem->firstDate
+                    + " -n " + QString::number(count)
+                    + " -f " + escapeArg(ticketItem->firstFromStation)
+                    + " -t " + escapeArg(ticketItem->firstToStation)
+                    + " -q " + (useQueue ? "true" : "false");
+        if (!sendCommandLine(firstCmd, PendingAction::BuyTransferFirst)) {
+            QMessageBox::warning(this, QString::fromUtf8("发送失败"), QString::fromUtf8("无法发送购票请求，请检查网络连接。"));
+        }
+        return;
+    }
 
     QString command = "buy_ticket -u " + escapeArg(currentUsername)
                     + " -i " + escapeArg(info.trainName)
@@ -835,8 +850,9 @@ void MainWindow::processServerResult(sjtu::ResultType type, const sjtu::Result &
             for (size_t i = 0; i < transfers.size(); ++i) {
                 const auto &tt = transfers[i];
                 TicketListWidget::TicketListItem item;
+                item.isTransfer = true;
                 item.trainName = QString::fromStdString(tt.first_ticket_.train_id_.str())
-                               + " → " + QString::fromStdString(tt.second_ticket_.train_id_.str());
+                               + QString::fromUtf8(" → ") + QString::fromStdString(tt.second_ticket_.train_id_.str());
                 item.startStation = QString::fromStdString(tt.first_ticket_.start_station_.str());
                 item.endStation = QString::fromStdString(tt.second_ticket_.end_station_.str());
                 item.departureTime = formatDateTime(tt.first_ticket_.departure_date_, tt.first_ticket_.departure_time_);
@@ -845,7 +861,15 @@ void MainWindow::processServerResult(sjtu::ResultType type, const sjtu::Result &
                 item.departureSortKey = toMinutesKey(tt.first_ticket_.departure_date_, tt.first_ticket_.departure_time_);
                 item.arrivalSortKey = toMinutesKey(tt.second_ticket_.arrival_date_, tt.second_ticket_.arrival_time_);
                 item.price = tt.price_;
-                item.remain = 0;
+                item.remain = qMin(tt.first_ticket_.seat_, tt.second_ticket_.seat_);
+                item.firstTrainId = QString::fromStdString(tt.first_ticket_.train_id_.str());
+                item.firstFromStation = QString::fromStdString(tt.first_ticket_.start_station_.str());
+                item.firstToStation = QString::fromStdString(tt.first_ticket_.end_station_.str());
+                item.firstDate = formatDate(tt.first_ticket_.departure_date_);
+                item.secondTrainId = QString::fromStdString(tt.second_ticket_.train_id_.str());
+                item.secondFromStation = QString::fromStdString(tt.second_ticket_.start_station_.str());
+                item.secondToStation = QString::fromStdString(tt.second_ticket_.end_station_.str());
+                item.secondDate = formatDate(tt.second_ticket_.departure_date_);
                 displayTickets.push_back(item);
             }
         } else {
@@ -860,6 +884,7 @@ void MainWindow::processServerResult(sjtu::ResultType type, const sjtu::Result &
             return;
         }
 
+        currentTicketList = displayTickets;
         ticketPageWidget->setTickets(displayTickets);
         stackedPanel->setCurrentWidget(ticketPageWidget);
         return;
@@ -874,6 +899,53 @@ void MainWindow::processServerResult(sjtu::ResultType type, const sjtu::Result &
         } else {
             QMessageBox::warning(this, QString::fromUtf8("购票失败"), QString::fromUtf8("购票请求被拒绝，可能余票不足或参数有误。"));
         }
+        return;
+    }
+
+    if (pendingAction == PendingAction::BuyTransferFirst) {
+        if (type == sjtu::ResultType::Success) {
+            const auto *ticketItem = [&]() -> const TicketListWidget::TicketListItem* {
+                for (const auto &item : currentTicketList) {
+                    if (item.isTransfer) return &item;
+                }
+                return nullptr;
+            }();
+            if (ticketItem == nullptr) {
+                pendingAction = PendingAction::None;
+                QMessageBox::warning(this, QString::fromUtf8("购票失败"), QString::fromUtf8("换乘信息丢失。"));
+                return;
+            }
+            const QString secondCmd = "buy_ticket -u " + escapeArg(currentUsername)
+                        + " -i " + escapeArg(ticketItem->secondTrainId)
+                        + " -d " + ticketItem->secondDate
+                        + " -n " + QString::number(pendingTransferCount)
+                        + " -f " + escapeArg(ticketItem->secondFromStation)
+                        + " -t " + escapeArg(ticketItem->secondToStation)
+                        + " -q " + (pendingTransferUseQueue ? "true" : "false");
+            if (!sendCommandLine(secondCmd, PendingAction::BuyTransferSecond)) {
+                pendingAction = PendingAction::None;
+                QMessageBox::warning(this, QString::fromUtf8("部分失败"),
+                    QString::fromUtf8("第一段购票成功，但第二段发送失败。请检查订单。"));
+                refreshOrders();
+            }
+        } else {
+            pendingAction = PendingAction::None;
+            QMessageBox::warning(this, QString::fromUtf8("购票失败"),
+                QString::fromUtf8("换乘第一段购票被拒绝，可能余票不足或参数有误。"));
+        }
+        return;
+    }
+
+    if (pendingAction == PendingAction::BuyTransferSecond) {
+        pendingAction = PendingAction::None;
+        if (type == sjtu::ResultType::Success) {
+            QMessageBox::information(this, QString::fromUtf8("购票成功"),
+                QString::fromUtf8("换乘车票两段均购买成功。可查看订单确认状态。"));
+        } else {
+            QMessageBox::warning(this, QString::fromUtf8("部分失败"),
+                QString::fromUtf8("换乘第一段购买成功，但第二段被拒绝。请查看订单。"));
+        }
+        refreshOrders();
         return;
     }
 
@@ -1035,11 +1107,28 @@ void MainWindow::processServerResult(sjtu::ResultType type, const sjtu::Result &
     if (pendingAction == PendingAction::ImportTrain) {
         if (type == sjtu::ResultType::Success) {
             ++importTrainsSuccess;
+            const QString cmd = importTrainsList.at(importTrainsIndex);
+            QRegularExpression re("-i\\s+(\\S+)");
+            QRegularExpressionMatch match = re.match(cmd);
+            if (match.hasMatch()) {
+                importedTrainIds.append(match.captured(1));
+            }
         } else {
             ++importTrainsFail;
         }
         ++importTrainsIndex;
         sendNextImportTrain();
+        return;
+    }
+
+    if (pendingAction == PendingAction::BatchRelease) {
+        if (type == sjtu::ResultType::Success) {
+            ++batchReleaseSuccess;
+        } else {
+            ++batchReleaseFail;
+        }
+        ++batchReleaseIndex;
+        sendNextBatchRelease();
         return;
     }
 
@@ -1161,6 +1250,7 @@ void MainWindow::onAdminImportTrainsRequested(const QString &filePath) {
     importTrainsIndex = 0;
     importTrainsSuccess = 0;
     importTrainsFail = 0;
+    importedTrainIds.clear();
     sendNextImportTrain();
 }
 
@@ -1184,6 +1274,49 @@ void MainWindow::sendNextImportTrain() {
         managePageWidget->showTrainResult(
             QString::fromUtf8("<span style='color:#dc2626;'>导入中断：成功 ") + QString::number(importTrainsSuccess)
             + QString::fromUtf8("，失败 ") + QString::number(importTrainsFail + (importTrainsList.size() - importTrainsIndex))
+            + QString::fromUtf8("</span>"));
+        pendingAction = PendingAction::None;
+    }
+}
+
+void MainWindow::onAdminBatchReleaseRequested() {
+    if (pendingAction != PendingAction::None) {
+        QMessageBox::information(this, QString::fromUtf8("提示"), QString::fromUtf8("当前有请求正在处理中，请稍后再试。"));
+        return;
+    }
+
+    if (importedTrainIds.isEmpty()) {
+        managePageWidget->showTrainResult(
+            QString::fromUtf8("<span style='color:#d97706;'>没有可发布的列车。请先导入火车信息。</span>"));
+        return;
+    }
+
+    batchReleaseIndex = 0;
+    batchReleaseSuccess = 0;
+    batchReleaseFail = 0;
+    sendNextBatchRelease();
+}
+
+void MainWindow::sendNextBatchRelease() {
+    if (batchReleaseIndex >= importedTrainIds.size()) {
+        const int total = importedTrainIds.size();
+        managePageWidget->showTrainResult(
+            QString::fromUtf8("<span style='color:#16a34a;'>批量发布完成！</span>")
+            + QString::fromUtf8("共 ") + QString::number(total) + QString::fromUtf8(" 列：")
+            + QString::fromUtf8("成功 ") + QString::number(batchReleaseSuccess)
+            + QString::fromUtf8("，失败 ") + QString::number(batchReleaseFail));
+        pendingAction = PendingAction::None;
+        return;
+    }
+
+    const QString command = "release_train -i " + escapeArg(importedTrainIds.at(batchReleaseIndex));
+    if (!sendCommandLine(command, PendingAction::BatchRelease)) {
+        QMessageBox::warning(this, QString::fromUtf8("发送失败"),
+            QString::fromUtf8("批量发布中断：无法发送第 ")
+            + QString::number(batchReleaseIndex + 1) + QString::fromUtf8(" 条命令。"));
+        managePageWidget->showTrainResult(
+            QString::fromUtf8("<span style='color:#dc2626;'>批量发布中断：成功 ") + QString::number(batchReleaseSuccess)
+            + QString::fromUtf8("，失败 ") + QString::number(batchReleaseFail + (importedTrainIds.size() - batchReleaseIndex))
             + QString::fromUtf8("</span>"));
         pendingAction = PendingAction::None;
     }
@@ -1238,6 +1371,8 @@ void MainWindow::initializeComponents() {
             this, &MainWindow::onAdminAddTrainRequested);
     connect(managePageWidget, &AdminPageWidget::importTrainsRequested,
             this, &MainWindow::onAdminImportTrainsRequested);
+    connect(managePageWidget, &AdminPageWidget::batchReleaseRequested,
+            this, &MainWindow::onAdminBatchReleaseRequested);
     connect(managePageWidget, &AdminPageWidget::queryProfileRequested,
             this, &MainWindow::onAdminQueryProfileRequested);
     connect(managePageWidget, &AdminPageWidget::addUserRequested,

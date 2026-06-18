@@ -65,6 +65,8 @@ AdminPageWidget::AdminPageWidget(QWidget *parent) : QWidget(parent) {
     addTrainButton->setObjectName("AdminBtnPrimary");
     importTrainButton = new QPushButton(QString::fromUtf8("导入火车"), trainGroup);
     importTrainButton->setObjectName("AdminBtnPrimary");
+    batchReleaseButton = new QPushButton(QString::fromUtf8("批量发布"), trainGroup);
+    batchReleaseButton->setObjectName("AdminBtnSuccess");
 
     trainIdRow->addWidget(trainIdLabel);
     trainIdRow->addWidget(trainIdEdit);
@@ -75,6 +77,7 @@ AdminPageWidget::AdminPageWidget(QWidget *parent) : QWidget(parent) {
     trainIdRow->addWidget(deleteTrainButton);
     trainIdRow->addWidget(addTrainButton);
     trainIdRow->addWidget(importTrainButton);
+    trainIdRow->addWidget(batchReleaseButton);
     trainIdRow->addStretch(1);
     trainLayout->addLayout(trainIdRow);
 
@@ -132,6 +135,7 @@ AdminPageWidget::AdminPageWidget(QWidget *parent) : QWidget(parent) {
     connect(deleteTrainButton, &QPushButton::clicked, this, &AdminPageWidget::onDeleteTrainClicked);
     connect(addTrainButton, &QPushButton::clicked, this, &AdminPageWidget::onAddTrainClicked);
     connect(importTrainButton, &QPushButton::clicked, this, &AdminPageWidget::onImportTrainsClicked);
+    connect(batchReleaseButton, &QPushButton::clicked, this, &AdminPageWidget::onBatchReleaseClicked);
     connect(queryUserButton, &QPushButton::clicked, this, &AdminPageWidget::onQueryProfileClicked);
     connect(addUserButton, &QPushButton::clicked, this, &AdminPageWidget::onAddUserClicked);
 
@@ -299,6 +303,10 @@ void AdminPageWidget::onImportTrainsClicked() {
         return;
     }
     emit importTrainsRequested(filePath);
+}
+
+void AdminPageWidget::onBatchReleaseClicked() {
+    emit batchReleaseRequested();
 }
 
 void AdminPageWidget::onQueryProfileClicked() {

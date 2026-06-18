@@ -29,6 +29,15 @@ public:
         qint64 arrivalSortKey;
         int price;
         int remain;
+        bool isTransfer = false;
+        QString firstTrainId;
+        QString firstFromStation;
+        QString firstToStation;
+        QString firstDate;
+        QString secondTrainId;
+        QString secondFromStation;
+        QString secondToStation;
+        QString secondDate;
     };
 
     explicit TicketListWidget(QWidget *parent = nullptr);

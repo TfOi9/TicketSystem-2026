@@ -70,6 +70,7 @@ private slots:
     void onAdminAddUserRequested(const QString &username, const QString &password,
                                  const QString &name, const QString &email, int privilege);
     void onAdminImportTrainsRequested(const QString &filePath);
+    void onAdminBatchReleaseRequested();
 
 private:
     enum class PendingAction {
@@ -81,6 +82,8 @@ private:
         QueryProfile,
         QueryTicket,
         BuyTicket,
+        BuyTransferFirst,
+        BuyTransferSecond,
         RefundTicket,
         QueryOrder,
         QueryTrain,
@@ -89,6 +92,7 @@ private:
         DeleteTrain,
         AddTrain,
         ImportTrain,
+        BatchRelease,
         AdminQueryProfile,
         AdminAddUser
     };
@@ -105,6 +109,7 @@ private:
     static QString escapeArg(const QString &arg);
     void refreshOrders();
     void sendNextImportTrain();
+    void sendNextBatchRelease();
 
     TopBar *topBar;
     StatusBar *statusBarWidget;
@@ -138,13 +143,22 @@ private:
     ProfileDialog *profileDialog;
 
     TicketListWidget::TicketListItem currentTicketContext;
+    QVector<TicketListWidget::TicketListItem> currentTicketList;
     QString currentTicketDate;
     OrdersPageWidget::OrderItem currentRefundContext;
+
+    int pendingTransferCount;
+    bool pendingTransferUseQueue;
 
     QStringList importTrainsList;
     int importTrainsIndex;
     int importTrainsSuccess;
     int importTrainsFail;
+
+    QStringList importedTrainIds;
+    int batchReleaseIndex;
+    int batchReleaseSuccess;
+    int batchReleaseFail;
 
     static constexpr quint16 kDiscoveryPort = 45454;
     static constexpr quint16 kServerPort = 1145;
